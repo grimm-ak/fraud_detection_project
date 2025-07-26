@@ -3,7 +3,7 @@ pandas==2.3.1
 numpy==1.26.4            # <--- PIN NUMPY to a version known to be stable with recent libraries
 joblib==1.5.1
 lightgbm==4.6.0
-scikit-learn==1.4.2      # <--- PIN SCIKIT-LEARN to a version compatible with new numpy/shap
+scikit-learn==1.6.1      # <--- PIN SCIKIT-LEARN to a version compatible with new numpy/shap
 shap==0.48.0             # <--- Revert SHAP to its latest version (you had this initially)
 matplotlib==3.8.4        # Pin matplotlib to a stable version
 seaborn==0.13.2
