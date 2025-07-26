@@ -91,14 +91,14 @@ if st.button("Predict Fraud"):
 
     st.write(f"**Fraud Probability:** {prediction_proba:.4f}")
 
-    # SHAP Explanation using Waterfall Plot
-    st.subheader("Why this prediction? (Feature Contributions)")
-    explainer = shap.Explainer(model)
-    shap_values = explainer(scaled_df)
+   # SHAP Explanation using Waterfall Plot
+st.subheader("Why this prediction? (Feature Contributions)")
+explainer = shap.Explainer(model)
+shap_values = explainer(scaled_df)
 
-    # Plot with matplotlib
-    st.set_option('deprecation.showPyplotGlobalUse', False)
-    fig = shap.plots.waterfall(shap_values[0], show=False)
-    st.pyplot(fig)
+# Waterfall plot for single prediction
+fig = shap.plots.waterfall(shap_values[0], show=False)
+st.pyplot(fig)
 
-    st.info("💡 Red pushes toward fraud, blue toward legitimate.")
+st.info("💡 Red pushes toward fraud, blue toward legitimate.")
+
