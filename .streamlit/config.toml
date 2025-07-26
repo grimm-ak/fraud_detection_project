@@ -1,6 +1,1 @@
-[compatibility]
-pythonVersion = 3.13 # Or 3.11, depending on what you chose for Streamlit Cloud. 3.13.5 is latest.
-
-[server] # <--- ADD THIS SECTION
-fileWatcherType = "poll" # <--- ADD THIS LINE
-# OR: fileWatcherType = "none" # If "poll" doesn't work, try "none"
+# Fully empty
