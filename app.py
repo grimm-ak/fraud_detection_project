@@ -104,31 +104,33 @@ if st.button("Predict Fraud"):
     
     st.write(f"**Fraud Probability:** {prediction_proba:.4f}")
 
-    # --- SHAP Interpretation for the single prediction ---
-    st.subheader("Why this prediction? (Feature Contributions)")
-    
-    explainer = shap.TreeExplainer(model)
-    
-    # Check if shap_values_raw_single is a list (typical for binary classification)
-    shap_values_raw_single = explainer.shap_values(scaled_input) 
-    if isinstance(shap_values_raw_single, list) and len(shap_values_raw_single) > 1:
-        shap_values_for_plot_single = shap_values_raw_single[1] 
-        expected_value_for_plot_single = explainer.expected_value[1] 
-    else:
-        shap_values_for_plot_single = shap_values_raw_single
-        expected_value_for_plot_single = explainer.expected_value
-    
-    # Ensure shap_values_for_plot_single is 1D for force_plot
-    if shap_values_for_plot_single.ndim > 1:
-        shap_values_for_plot_single = shap_values_for_plot_single[0] 
+ # --- SHAP Interpretation for the single prediction ---
+st.subheader("Why this prediction? (Feature Contributions)")
 
-    single_input_df = pd.DataFrame(scaled_input, columns=feature_columns)
+explainer = shap.TreeExplainer(model)
 
-    st.write("The plot below shows how each feature pushed the prediction (blue for negative impact, red for positive impact).")
-    
-    # --- THIS IS THE CRITICAL CHANGE: NO shap.initjs() or shap.getjs() ---
-    # shap.force_plot().html() already contains all necessary HTML/JS for rendering.
-    html_plot = shap.force_plot(expected_value_for_plot_single, shap_values_for_plot_single, single_input_df, plot_cmap='RdBu').html()
-    st.components.v1.html(html_plot, height=300, scrolling=True)
+# Check if shap_values_raw_single is a list (typical for binary classification)
+shap_values_raw_single = explainer.shap_values(scaled_input)
+if isinstance(shap_values_raw_single, list) and len(shap_values_raw_single) > 1:
+    shap_values_for_plot_single = shap_values_raw_single[1]
+    expected_value_for_plot_single = explainer.expected_value[1]
+else:
+    shap_values_for_plot_single = shap_values_raw_single
+    expected_value_for_plot_single = explainer.expected_value
 
-    st.info("💡 A higher red bar means that feature value pushed the prediction towards FRAUD. A higher blue bar means it pushed it towards LEGITIMATE.")
+# Ensure shap_values_for_plot_single is 1D for force_plot
+if shap_values_for_plot_single.ndim > 1:
+    shap_values_for_plot_single = shap_values_for_plot_single[0]
+
+single_input_df = pd.DataFrame(scaled_input, columns=feature_columns)
+
+st.write("The plot below shows how each feature pushed the prediction (blue for negative impact, red for positive impact).")
+
+# --- CRITICAL FIX HERE: Replace the problematic lines ---
+# DELETE the original line: shap.initjs()
+# DELETE the original line: html = f"<head>{shap.getjs()}</head><body>{shap.force_plot(...).html()}</body>"
+# REPLACE them with this single line:
+html_plot = shap.force_plot(expected_value_for_plot_single, shap_values_for_plot_single, single_input_df, plot_cmap='RdBu').html()
+st.components.v1.html(html_plot, height=300, scrolling=True)
+
+st.info("💡 A higher red bar means that feature value pushed the prediction towards FRAUD. A higher blue bar means it pushed it towards LEGITIMATE.")
