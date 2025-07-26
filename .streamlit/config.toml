@@ -1,1 +1,2 @@
-# Fully empty
+[server]
+fileWatcherType = "none" # <--- CHANGE THIS LINE
