@@ -86,14 +86,22 @@ if st.button("Predict Fraud"):
         input_df['type_TRANSFER'] = True
 
     # 4. Ensure column order and presence match training data's 'feature_columns'
+    # This creates the DataFrame in the correct order for scaling and prediction
     input_data_processed = input_df[feature_columns]
 
     # 5. Scale the input data using the loaded scaler
-    scaled_input = scaler.transform(input_data_processed)
+    # scaler.transform expects a 2D array, which input_data_processed (DataFrame) is.
+    # The output is a NumPy array, which is typical for model input.
+    scaled_input_array = scaler.transform(input_data_processed)
     
+    # --- CRITICAL FIX FOR SHAP: Pass a DataFrame with feature names to the model and SHAP ---
+    # Convert the scaled NumPy array back to a DataFrame with feature names
+    # This resolves the 'X does not have valid feature names' warning and potentially helps SHAP plotting.
+    scaled_input_df_for_model = pd.DataFrame(scaled_input_array, columns=feature_columns)
+
     # 6. Make prediction
-    prediction_proba = model.predict_proba(scaled_input)[:, 1][0]
-    prediction_label = model.predict(scaled_input)[0]
+    prediction_proba = model.predict_proba(scaled_input_df_for_model)[:, 1][0] # Use DataFrame here
+    prediction_label = model.predict(scaled_input_df_for_model)[0] # Use DataFrame here
 
     st.subheader("Prediction Result:")
     if prediction_label == 1:
@@ -104,13 +112,13 @@ if st.button("Predict Fraud"):
     st.write(f"**Fraud Probability:** {prediction_proba:.4f}")
 
     # --- SHAP Interpretation for the single prediction ---
-    # <--- THESE LINES MUST BE INSIDE THE if st.button BLOCK ---
-    st.subheader("Why this prediction? (Feature Contributions)") # <--- This line and below MUST be indented
+    st.subheader("Why this prediction? (Feature Contributions)")
     
     explainer = shap.TreeExplainer(model)
     
-    # Check if shap_values_raw_single is a list (typical for binary classification)
-    shap_values_raw_single = explainer.shap_values(scaled_input) 
+    # Calculate SHAP values using the DataFrame with feature names
+    shap_values_raw_single = explainer.shap_values(scaled_input_df_for_model) 
+    
     if isinstance(shap_values_raw_single, list) and len(shap_values_raw_single) > 1:
         shap_values_for_plot_single = shap_values_raw_single[1] 
         expected_value_for_plot_single = explainer.expected_value[1] 
@@ -122,11 +130,13 @@ if st.button("Predict Fraud"):
     if shap_values_for_plot_single.ndim > 1:
         shap_values_for_plot_single = shap_values_for_plot_single[0] 
 
-    single_input_df = pd.DataFrame(scaled_input, columns=feature_columns)
-
+    # For force_plot, the base_values (scaled_input) should ideally have feature names as well.
+    # The single_input_df already has names and is based on scaled_input_array.
+    # We already have scaled_input_df_for_model which is perfect for this.
+    
     st.write("The plot below shows how each feature pushed the prediction (blue for negative impact, red for positive impact).")
     
-    html_plot = shap.force_plot(expected_value_for_plot_single, shap_values_for_plot_single, single_input_df, plot_cmap='RdBu').html()
+    html_plot = shap.force_plot(expected_value_for_plot_single, shap_values_for_plot_single, scaled_input_df_for_model, plot_cmap='RdBu').html() # Use scaled_input_df_for_model here
     st.components.v1.html(html_plot, height=300, scrolling=True)
 
     st.info("💡 A higher red bar means that feature value pushed the prediction towards FRAUD. A higher blue bar means it pushed it towards LEGITIMATE.")
