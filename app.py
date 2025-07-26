@@ -98,7 +98,12 @@ if st.button("Predict Fraud"):
     explainer = shap.Explainer(model)
     shap_values = explainer(scaled_df)
 
-    fig = shap.plots.waterfall(shap_values[0], show=False)
+    # Clear previous matplotlib figures
+    plt.clf()
+
+    shap.plots.waterfall(shap_values[0], show=False)
+    fig = plt.gcf()
     st.pyplot(fig)
+
 
     st.info("💡 Red pushes the prediction toward fraud; blue pushes toward legitimate.")
