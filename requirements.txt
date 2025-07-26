@@ -4,6 +4,6 @@ numpy
 joblib
 lightgbm
 scikit-learn==1.6.1 
-shap==0.48.0        
+shap==0.39.0         
 matplotlib
 seaborn
