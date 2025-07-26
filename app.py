@@ -1,49 +1,36 @@
-# app.py (Corrected SHAP interpretation section)
+# app.py (Corrected Model Loading Section)
 
-# ... (Previous code including loading model, scaler, UI, etc.) ...
+import streamlit as st
+import pandas as pd
+import numpy as np
+import joblib # To load your saved model and scaler
+import shap # To display SHAP explanations
 
-# --- Preprocess Input & Make Prediction ---
-if st.button("Predict Fraud"):
-    # ... (Your input processing and prediction logic) ...
+# --- Load the trained model and scaler ---
+# Use st.cache_resource to cache the model and scaler.
+# This decorator runs the function only once and stores the result in cache,
+# and it properly handles the initialization of Streamlit's 'st' object.
+@st.cache_resource
+def load_model_and_scaler():
+    try:
+        model = joblib.load('best_lgbm_clf_model.joblib')
+        scaler = joblib.load('scaler.joblib')
+        # We'll remove st.sidebar messages from here and put general success/error messages later if needed
+        return model, scaler
+    except FileNotFoundError:
+        st.error("Error: Model or scaler file not found. Please ensure they are in the correct directory.")
+        st.stop() # Stop the app if files are missing
+    except Exception as e:
+        st.error(f"Error loading model or scaler: {e}")
+        st.info("Please ensure 'best_lgbm_clf_model.joblib' and 'scaler.joblib' are valid joblib files.")
+        st.stop()
 
-    st.subheader("Prediction Result:")
-    if prediction_label == 1:
-        st.error(f"🔴 FRAUDULENT TRANSACTION DETECTED!")
-    else:
-        st.success(f"🟢 LEGITIMATE TRANSACTION.")
-    
-    st.write(f"**Fraud Probability:** {prediction_proba:.4f}")
+# Call the cached function to load the model and scaler
+model, scaler = load_model_and_scaler()
 
-    # --- SHAP Interpretation for the single prediction ---
-    st.subheader("Why this prediction? (Feature Contributions)")
-    
-    explainer = shap.TreeExplainer(model)
-    
-    # --- CRITICAL FIX FOR SHAP IndexError ---
-    shap_values_raw_single = explainer.shap_values(scaled_input) 
+# --- Streamlit UI (This part is still at the top level, but doesn't cause problem) ---
+st.set_page_config(page_title="Fraud Detection System", layout="centered")
+st.title("💸 Real-Time Fraud Detection System")
+st.markdown("Enter transaction details to predict if it's fraudulent.")
 
-    # Check if shap_values_raw_single is a list (typical for binary classification)
-    if isinstance(shap_values_raw_single, list) and len(shap_values_raw_single) > 1:
-        # If it's a list with multiple elements, assume index 1 is for the positive class
-        shap_values_for_plot_single = shap_values_raw_single[1] 
-        expected_value_for_plot_single = explainer.expected_value[1] 
-    else:
-        # If it's not a list, or list has only one element, assume it's directly the SHAP values for the output
-        # This happens if the model output is interpreted as a single-dimensional prediction (e.g., probability)
-        shap_values_for_plot_single = shap_values_raw_single
-        expected_value_for_plot_single = explainer.expected_value # No indexing needed here
-    
-    # Ensure shap_values_for_plot_single is 1D for force_plot (it should be 1, n_features)
-    # The .force_plot expects (n_features,) for a single instance.
-    if shap_values_for_plot_single.ndim > 1:
-        shap_values_for_plot_single = shap_values_for_plot_single[0] # Take the first (and only) instance's values
-
-
-    single_input_df = pd.DataFrame(scaled_input, columns=feature_columns)
-
-    st.write("The plot below shows how each feature pushed the prediction (blue for negative impact, red for positive impact).")
-    shap.initjs()
-    html = f"<head>{shap.getjs()}</head><body>{shap.force_plot(expected_value_for_plot_single, shap_values_for_plot_single, single_input_df).html()}</body>"
-    st.components.v1.html(html, height=300, scrolling=True)
-
-    st.info("💡 A higher red bar means that feature value pushed the prediction towards FRAUD. A higher blue bar means it pushed it towards LEGITIMATE.")
+# ... (rest of your app.py code below this, including feature_columns, input fields, prediction logic)
