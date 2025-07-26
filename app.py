@@ -1,85 +1,81 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import joblib
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
-import seaborn as sns
-import matplotlib.pyplot as plt
+import shap
+import lightgbm
 
-st.set_page_config(page_title="Fraud Detection", layout="wide")
-st.title("💳 Fraud Detection using LightGBM")
+# Set page config
+st.set_page_config(page_title="Fraud Detection App", layout="centered")
 
-# Load the trained model and scaler
+# Load model and scaler
 model = joblib.load("best_lgbm_clf_model.joblib")
 scaler = joblib.load("scaler.joblib")
 
-# File upload section
-uploaded_file = st.file_uploader("📂 Upload Transaction CSV File", type=["csv"])
+# Title
+st.title("🚨 Fraud Detection - Streamlit App")
+st.markdown("Upload transaction data or try our sample dataset to detect fraud.")
 
-if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
-    st.subheader("📄 Raw Uploaded Data")
-    st.dataframe(df.head(10))
+# Load sample data
+@st.cache_data
+def load_sample_data():
+    df = pd.read_csv("sample_test_data.csv")
+    return df
 
-    # Preprocessing
-    st.subheader("⚙️ Data Preprocessing")
-    df["balanceDiffOrg"] = df['oldbalanceOrg'] - df['newbalanceOrig']
-    df["balanceDiffDest"] = df['newbalanceDest'] - df['oldbalanceDest']
-    df_encoded = pd.get_dummies(df, columns=["type"], drop_first=True)
+sample_df = load_sample_data()
 
-    # Drop unused/leaky features
-    drop_cols = ['nameOrig', 'nameDest', 'isFlaggedFraud']
-    drop_cols = [col for col in drop_cols if col in df_encoded.columns]
-    X = df_encoded.drop(drop_cols + ['isFraud'], axis=1, errors='ignore')
-    
-    # Target
-    y = df_encoded['isFraud'] if 'isFraud' in df_encoded.columns else None
+# Show sample preview
+st.subheader("🔍 Sample Data Preview")
+st.dataframe(sample_df.head(10))
 
-    # Feature scaling
+# --- Evaluation on Sample Data ---
+if st.button("📊 Run Evaluation on Sample"):
     try:
-        X_scaled = scaler.transform(X)
+        X_sample = sample_df.drop("is_fraud", axis=1)
+        y_sample = sample_df["is_fraud"]
+        X_scaled = scaler.transform(X_sample)
+        y_pred = model.predict(X_scaled)
+
+        results_df = pd.DataFrame({
+            "Actual": y_sample,
+            "Predicted": y_pred.astype(int)
+        })
+
+        st.success("✅ Prediction Complete")
+        st.dataframe(results_df.head(10))
+
+        # SHAP explainability for first sample
+        st.subheader("📈 SHAP Explanation (1st row)")
+        explainer = shap.TreeExplainer(model)
+        shap_values = explainer.shap_values(X_scaled[:1])
+
+        st.set_option("deprecation.showPyplotGlobalUse", False)
+        shap.initjs()
+        st.pyplot(shap.force_plot(explainer.expected_value[1], shap_values[1], X_sample.iloc[0], matplotlib=True))
+
     except Exception as e:
-        st.error(f"❌ Error during scaling: {e}")
-        st.stop()
+        st.error(f"⚠️ Error: {e}")
 
-    # Predictions
-    y_pred = model.predict(X_scaled)
-    y_proba = model.predict_proba(X_scaled)[:, 1]
+# --- Optional Upload ---
+st.subheader("📂 Or Upload Your Own CSV File")
 
-    df['Fraud Prediction'] = y_pred
-    df['Fraud Probability'] = y_proba
+uploaded_file = st.file_uploader("Upload transaction data CSV", type=["csv"])
 
-    st.subheader("🔍 Prediction Results")
-    st.dataframe(df[['Fraud Prediction', 'Fraud Probability'] + list(X.columns)].head(10))
+if uploaded_file:
+    try:
+        user_df = pd.read_csv(uploaded_file)
+        st.dataframe(user_df.head(10))
 
-    # Downloadable predictions
-    csv = df.to_csv(index=False).encode('utf-8')
-    st.download_button("📥 Download Full Prediction CSV", data=csv, file_name="fraud_predictions.csv", mime="text/csv")
+        if "is_fraud" in user_df.columns:
+            X_user = user_df.drop("is_fraud", axis=1)
+        else:
+            X_user = user_df
 
-    # Evaluation (if ground truth exists)
-    if y is not None:
-        st.subheader("📊 Model Evaluation")
+        X_scaled = scaler.transform(X_user)
+        y_pred = model.predict(X_scaled)
 
-        accuracy = accuracy_score(y, y_pred)
-        precision = precision_score(y, y_pred)
-        recall = recall_score(y, y_pred)
-        f1 = f1_score(y, y_pred)
-        roc_auc = roc_auc_score(y, y_proba)
+        st.subheader("✅ Predictions on Uploaded Data")
+        st.write(pd.DataFrame({"Predicted": y_pred.astype(int)}).head(10))
 
-        st.markdown(f"- **Accuracy**: `{accuracy:.4f}`")
-        st.markdown(f"- **Precision**: `{precision:.4f}`")
-        st.markdown(f"- **Recall**: `{recall:.4f}`")
-        st.markdown(f"- **F1 Score**: `{f1:.4f}`")
-        st.markdown(f"- **ROC AUC Score**: `{roc_auc:.4f}`")
-
-        # Confusion matrix
-        cm = confusion_matrix(y, y_pred)
-        fig, ax = plt.subplots()
-        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax)
-        st.pyplot(fig)
-
-        # Classification report
-        st.subheader("📄 Classification Report")
-        st.text(classification_report(y, y_pred))
-
-else:
-    st.info("👆 Please upload a CSV file to get started.")
+    except Exception as e:
+        st.error(f"⚠️ Error during prediction: {e}")
