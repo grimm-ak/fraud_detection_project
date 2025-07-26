@@ -35,7 +35,7 @@ st.markdown("Enter transaction details to predict if it's fraudulent.")
 
 st.header("Transaction Details")
 
- col1, col2 = st.columns(2)
+col1, col2 = st.columns(2)
 with col1:
     step = st.number_input("Step (Time step in hours)", min_value=1, value=1, key="input_step") # Added key
     amount = st.number_input("Amount", min_value=0.0, value=1000.0, format="%.2f", key="input_amount") # Added key
