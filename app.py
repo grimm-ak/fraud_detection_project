@@ -107,3 +107,47 @@ if st.button("Predict Fraud"):
 
 
     st.info("💡 Red pushes the prediction toward fraud; blue pushes toward legitimate.")
+
+
+    # ----------------------------- Batch Prediction Section -----------------------------
+st.divider()
+st.subheader("🔄 Batch Fraud Prediction (Upload CSV)")
+
+uploaded_file = st.file_uploader("Upload a CSV file with the same features used during training", type=["csv"])
+
+if uploaded_file is not None:
+    try:
+        # Read CSV
+        batch_df = pd.read_csv(uploaded_file)
+        st.success("✅ File uploaded successfully!")
+        st.write("Preview of uploaded data:")
+        st.dataframe(batch_df.head())
+
+        # Check for required columns
+        missing_cols = [col for col in required_features if col not in batch_df.columns]
+        if missing_cols:
+            st.error(f"❌ Missing required columns: {missing_cols}")
+        else:
+            # Preprocessing
+            batch_scaled = scaler.transform(batch_df[required_features])
+            batch_scaled_df = pd.DataFrame(batch_scaled, columns=required_features)
+
+            # Predict
+            batch_preds = model.predict(batch_scaled_df)
+            batch_df["fraud_prediction"] = batch_preds
+
+            # Show results
+            st.write("✅ Predictions:")
+            st.dataframe(batch_df[["fraud_prediction"]].head(10))
+
+            # Download button
+            csv_output = batch_df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Download Predictions as CSV",
+                data=csv_output,
+                file_name="fraud_predictions.csv",
+                mime="text/csv"
+            )
+    except Exception as e:
+        st.error(f"Something went wrong: {e}")
+
