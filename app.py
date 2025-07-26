@@ -1,5 +1,3 @@
-# app.py (Full code with prediction and SHAP logic restored)
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -69,14 +67,17 @@ if st.button("Predict Fraud"):
     input_df['balanceDiffDest'] = input_df['newbalanceDest'] - input_df['oldbalanceDest']
 
     # 3. Apply One-Hot Encoding for 'type' (Corrected Logic)
+    # Initialize all type_ columns to False first
     input_df['type_CASH_OUT'] = False
     input_df['type_DEBIT'] = False
     input_df['type_PAYMENT'] = False
     input_df['type_TRANSFER'] = False 
 
+    # Set only the selected type to True
     if transaction_type == 'CASH_IN':
-        pass # Do nothing for CASH_IN, as its dummy is the baseline
-    elif transaction_type == 'CASH_OUT':
+        # For CASH_IN, all type_ columns remain False due to drop_first=True in training
+        pass
+    elif transaction_type == 'CASH_OUT': # <--- Corrected this to be an elif
         input_df['type_CASH_OUT'] = True
     elif transaction_type == 'DEBIT':
         input_df['type_DEBIT'] = True
@@ -124,8 +125,9 @@ if st.button("Predict Fraud"):
     single_input_df = pd.DataFrame(scaled_input, columns=feature_columns)
 
     st.write("The plot below shows how each feature pushed the prediction (blue for negative impact, red for positive impact).")
-    shap.initjs()
-    html = f"<head>{shap.getjs()}</head><body>{shap.force_plot(expected_value_for_plot_single, shap_values_for_plot_single, single_input_df).html()}</body>"
-    st.components.v1.html(html, height=300, scrolling=True)
+    # --- CRITICAL FIX HERE: Remove shap.initjs() and shap.getjs() ---
+    # shap.force_plot().html() already contains the necessary HTML/JS.
+    html_plot = shap.force_plot(expected_value_for_plot_single, shap_values_for_plot_single, single_input_df, plot_cmap='RdBu').html()
+    st.components.v1.html(html_plot, height=300, scrolling=True)
 
     st.info("💡 A higher red bar means that feature value pushed the prediction towards FRAUD. A higher blue bar means it pushed it towards LEGITIMATE.")
