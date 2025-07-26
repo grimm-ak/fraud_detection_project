@@ -35,19 +35,20 @@ st.markdown("Enter transaction details to predict if it's fraudulent.")
 
 st.header("Transaction Details")
 
-col1, col2 = st.columns(2)
+ col1, col2 = st.columns(2)
 with col1:
-    step = st.number_input("Step (Time step in hours)", min_value=1, value=1)
-    amount = st.number_input("Amount", min_value=0.0, value=1000.0, format="%.2f")
-    oldbalanceOrg = st.number_input("Old Balance Originator", min_value=0.0, value=10000.0, format="%.2f")
-    newbalanceOrig = st.number_input("New Balance Originator", min_value=0.0, value=9000.0, format="%.2f")
-    oldbalanceDest = st.number_input("Old Balance Destination", min_value=0.0, value=500.0, format="%.2f")
-    newbalanceDest = st.number_input("New Balance Destination", min_value=0.0, value=1500.0, format="%.2f")
+    step = st.number_input("Step (Time step in hours)", min_value=1, value=1, key="input_step") # Added key
+    amount = st.number_input("Amount", min_value=0.0, value=1000.0, format="%.2f", key="input_amount") # Added key
+    oldbalanceOrg = st.number_input("Old Balance Originator", min_value=0.0, value=10000.0, format="%.2f", key="input_oldbalanceorg") # Added key
+    newbalanceOrig = st.number_input("New Balance Originator", min_value=0.0, value=9000.0, format="%.2f", key="input_newbalanceorig") # Added key
+    oldbalanceDest = st.number_input("Old Balance Destination", min_value=0.0, value=500.0, format="%.2f", key="input_oldbalancedest") # Added key
+    newbalanceDest = st.number_input("New Balance Destination", min_value=0.0, value=1500.0, format="%.2f", key="input_newbalancedest") # Added key
 
 with col2:
     transaction_type = st.selectbox(
         "Transaction Type",
-        ('CASH_IN', 'CASH_OUT', 'DEBIT', 'PAYMENT', 'TRANSFER')
+        ('CASH_IN', 'CASH_OUT', 'DEBIT', 'PAYMENT', 'TRANSFER'),
+        key="input_transaction_type" # Added key
     )
     st.markdown("*(Other features V1-V28 are anonymized and not typically exposed as direct inputs. We use derived ones.)*")
 
