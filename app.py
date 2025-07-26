@@ -36,6 +36,7 @@ st.title("💸 Real-Time Fraud Detection System")
 st.markdown("Enter transaction details to predict if it's fraudulent.")
 st.header("Transaction Details")
 
+# --- Input UI ---
 col1, col2 = st.columns(2)
 with col1:
     step = st.number_input("Step (hour)", min_value=1, value=1, key="step")
@@ -51,8 +52,9 @@ with col2:
         ('CASH_IN', 'CASH_OUT', 'DEBIT', 'PAYMENT', 'TRANSFER'),
         key="type"
     )
-    st.markdown("*(Other features V1-V28 are anonymized; we use engineered features.)*")
+    st.markdown("*(Note: We use derived features instead of anonymized V1–V28.)*")
 
+# --- Predict Button ---
 if st.button("Predict Fraud"):
     # Create input dataframe
     input_df = pd.DataFrame(0, index=[0], columns=feature_columns)
@@ -89,16 +91,14 @@ if st.button("Predict Fraud"):
     else:
         st.success("🟢 LEGITIMATE TRANSACTION.")
 
-    st.write(f"**Fraud Probability:** {prediction_proba:.4f}")
+    st.write(f"**Fraud Probability:** `{prediction_proba:.4f}`")
 
-   # SHAP Explanation using Waterfall Plot
-st.subheader("Why this prediction? (Feature Contributions)")
-explainer = shap.Explainer(model)
-shap_values = explainer(scaled_df)
+    # SHAP Explanation using Waterfall Plot
+    st.subheader("Why this prediction? (Feature Contributions)")
+    explainer = shap.Explainer(model)
+    shap_values = explainer(scaled_df)
 
-# Waterfall plot for single prediction
-fig = shap.plots.waterfall(shap_values[0], show=False)
-st.pyplot(fig)
+    fig = shap.plots.waterfall(shap_values[0], show=False)
+    st.pyplot(fig)
 
-st.info("💡 Red pushes toward fraud, blue toward legitimate.")
-
+    st.info("💡 Red pushes the prediction toward fraud; blue pushes toward legitimate.")
