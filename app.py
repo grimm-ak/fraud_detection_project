@@ -3,53 +3,55 @@ import pandas as pd
 import joblib
 import shap
 import matplotlib.pyplot as plt
+import numpy as np
 
-# Set page config
-st.set_page_config(page_title="Fraud Detection App", layout="centered")
-
-# Load model and scaler
+# Load the model and scaler
 model = joblib.load("best_lgbm_clf_model.joblib")
 scaler = joblib.load("scaler.joblib")
 
-# Load sample data
-@st.cache_data
-def load_sample_data():
-    return pd.read_csv("sample_test_data.csv")
+# Set Streamlit page config
+st.set_page_config(page_title="Fraud Detection App", layout="wide")
 
-sample_df = load_sample_data()
+st.title("💸 Fraud Detection App using LightGBM")
+st.write("This app predicts whether a transaction is fraudulent or not based on selected inputs.")
 
-# Title
-st.title("💳 Fraud Detection System")
-st.write("Select a transaction to check if it's fraudulent and explain why.")
+# Load a sample row with correct columns (used during model training)
+# Replace this dict with any real example row from your training set
+sample_data = pd.DataFrame([{
+    'type_CASH_OUT': 0, 'type_DEBIT': 0, 'type_PAYMENT': 0, 'type_TRANSFER': 1,
+    'amount': 3900.0, 'oldbalanceOrg': 4200.0, 'newbalanceOrig': 300.0,
+    'oldbalanceDest': 0.0, 'newbalanceDest': 0.0,
+    'balanceDiffOrg': -3900.0, 'balanceDiffDest': 0.0
+}])
 
-# Dropdown for row selection
-selected_index = st.selectbox("Select Transaction Index", range(len(sample_df)))
+# Let user adjust input values
+st.subheader("🔧 Input Features")
+selected_row = sample_data.copy()
+for col in selected_row.columns:
+    if 'type_' in col:
+        selected_row[col] = st.selectbox(f"{col}", [0, 1], index=int(selected_row[col][0]))
+    else:
+        selected_row[col] = st.number_input(f"{col}", value=float(selected_row[col][0]))
 
-# Get selected row
-selected_row = sample_df.iloc[[selected_index]]
-st.write("### 🔍 Selected Transaction Preview")
+# Show the updated row
+st.markdown("### Final Input Preview")
 st.dataframe(selected_row)
 
-# Scale it
+# Scale and predict
 X_scaled = scaler.transform(selected_row)
-
-# Predict
 pred = model.predict(X_scaled)[0]
 proba = model.predict_proba(X_scaled)[0][1]
 
-st.markdown(f"## 🧠 Prediction: {'Fraud ❗' if pred else 'Not Fraud ✅'}")
-st.markdown(f"**Probability of Fraud:** `{proba:.2%}`")
+st.markdown(f"### ✅ Prediction: {'Fraud' if pred==1 else 'Not Fraud'} with probability **{proba:.2%}**")
 
-# SHAP Explanation
-st.markdown("### 🔎 Why this prediction? (SHAP Explanation)")
-
-# SHAP init
+# SHAP Explainer and Plot
 explainer = shap.TreeExplainer(model)
-shap_values = explainer.shap_values(selected_row)
+shap_values = explainer.shap_values(pd.DataFrame(X_scaled, columns=selected_row.columns))
 
-# Plot SHAP
-plt.figure(figsize=(10, 3))
-shap.waterfall_plot(shap.Explanation(values=shap_values[1][0], 
-                                     base_values=explainer.expected_value[1],
-                                     data=selected_row.iloc[0]))
-st.pyplot(plt.gcf())
+st.markdown("### 🔍 Feature Impact (SHAP Values)")
+fig, ax = plt.subplots(figsize=(10, 3))
+shap.bar_plot(shap_values[1][0], feature_names=selected_row.columns, max_display=10)
+st.pyplot(fig)
+
+st.markdown("---")
+st.markdown("Made with ❤️ using LightGBM, SHAP, and Streamlit")
