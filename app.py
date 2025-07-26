@@ -5,53 +5,71 @@ import shap
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Load the model and scaler
+# Load trained model and scaler
 model = joblib.load("best_lgbm_clf_model.joblib")
 scaler = joblib.load("scaler.joblib")
 
-# Set Streamlit page config
-st.set_page_config(page_title="Fraud Detection App", layout="wide")
+st.set_page_config(page_title="Fraud Detection", layout="centered")
+st.title("💳 Fraud Detection App")
+st.write("Enter transaction details to predict if it's fraudulent.")
 
-st.title("💸 Fraud Detection App using LightGBM")
-st.write("This app predicts whether a transaction is fraudulent or not based on selected inputs.")
+# ----------------------------
+# Define input fields manually
+# ----------------------------
+st.subheader("🔢 Transaction Features")
 
-# Load a sample row with correct columns (used during model training)
-# Replace this dict with any real example row from your training set
-sample_data = pd.DataFrame([{
-    'type_CASH_OUT': 0, 'type_DEBIT': 0, 'type_PAYMENT': 0, 'type_TRANSFER': 1,
-    'amount': 3900.0, 'oldbalanceOrg': 4200.0, 'newbalanceOrig': 300.0,
-    'oldbalanceDest': 0.0, 'newbalanceDest': 0.0,
-    'balanceDiffOrg': -3900.0, 'balanceDiffDest': 0.0
+# Transaction type one-hot
+type_TRANSFER = st.selectbox("Type: TRANSFER?", [0, 1])
+type_CASH_OUT = st.selectbox("Type: CASH_OUT?", [0, 1])
+type_DEBIT = st.selectbox("Type: DEBIT?", [0, 1])
+type_PAYMENT = st.selectbox("Type: PAYMENT?", [0, 1])
+
+# Numeric fields
+amount = st.number_input("Amount", min_value=0.0, value=3900.0)
+oldbalanceOrg = st.number_input("Old Balance (Origin)", min_value=0.0, value=4200.0)
+newbalanceOrig = st.number_input("New Balance (Origin)", min_value=0.0, value=300.0)
+oldbalanceDest = st.number_input("Old Balance (Destination)", min_value=0.0, value=0.0)
+newbalanceDest = st.number_input("New Balance (Destination)", min_value=0.0, value=0.0)
+
+# Derived features
+balanceDiffOrg = newbalanceOrig - oldbalanceOrg
+balanceDiffDest = newbalanceDest - oldbalanceDest
+
+# Collect into a DataFrame
+input_data = pd.DataFrame([{
+    'type_CASH_OUT': type_CASH_OUT,
+    'type_DEBIT': type_DEBIT,
+    'type_PAYMENT': type_PAYMENT,
+    'type_TRANSFER': type_TRANSFER,
+    'amount': amount,
+    'oldbalanceOrg': oldbalanceOrg,
+    'newbalanceOrig': newbalanceOrig,
+    'oldbalanceDest': oldbalanceDest,
+    'newbalanceDest': newbalanceDest,
+    'balanceDiffOrg': balanceDiffOrg,
+    'balanceDiffDest': balanceDiffDest
 }])
 
-# Let user adjust input values
-st.subheader("🔧 Input Features")
-selected_row = sample_data.copy()
-for col in selected_row.columns:
-    if 'type_' in col:
-        selected_row[col] = st.selectbox(f"{col}", [0, 1], index=int(selected_row[col][0]))
-    else:
-        selected_row[col] = st.number_input(f"{col}", value=float(selected_row[col][0]))
+st.markdown("### 🧾 Final Input")
+st.dataframe(input_data)
 
-# Show the updated row
-st.markdown("### Final Input Preview")
-st.dataframe(selected_row)
-
-# Scale and predict
-X_scaled = scaler.transform(selected_row)
+# Scale and Predict
+X_scaled = scaler.transform(input_data)
 pred = model.predict(X_scaled)[0]
 proba = model.predict_proba(X_scaled)[0][1]
 
-st.markdown(f"### ✅ Prediction: {'Fraud' if pred==1 else 'Not Fraud'} with probability **{proba:.2%}**")
+st.markdown(f"### 🎯 Prediction: {'🚨 Fraud' if pred==1 else '✅ Not Fraud'}")
+st.markdown(f"**Confidence: {proba:.2%}**")
 
-# SHAP Explainer and Plot
+# SHAP Explanation
+st.subheader("📉 Feature Impact (SHAP)")
+
 explainer = shap.TreeExplainer(model)
-shap_values = explainer.shap_values(pd.DataFrame(X_scaled, columns=selected_row.columns))
+shap_values = explainer.shap_values(pd.DataFrame(X_scaled, columns=input_data.columns))
 
-st.markdown("### 🔍 Feature Impact (SHAP Values)")
-fig, ax = plt.subplots(figsize=(10, 3))
-shap.bar_plot(shap_values[1][0], feature_names=selected_row.columns, max_display=10)
+fig, ax = plt.subplots(figsize=(10, 4))
+shap.bar_plot(shap_values[1][0], feature_names=input_data.columns, max_display=10)
 st.pyplot(fig)
 
 st.markdown("---")
-st.markdown("Made with ❤️ using LightGBM, SHAP, and Streamlit")
+st.caption("Model: LightGBM • Explainability: SHAP • UI: Streamlit")
