@@ -4,6 +4,8 @@ numpy
 joblib
 lightgbm
 scikit-learn==1.6.1
-shap
-matplotlib 
-seaborn    
+shap==0.48.0                 
+numba==0.56.4              
+llvmlite==0.39.0            
+matplotlib
+seaborn
