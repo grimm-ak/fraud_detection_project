@@ -77,7 +77,7 @@ if st.button("Predict Fraud"):
     if transaction_type == 'CASH_IN':
         # For CASH_IN, all type_ columns remain False due to drop_first=True in training
         pass
-    elif transaction_type == 'CASH_OUT': # <--- Corrected this to be an elif
+    elif transaction_type == 'CASH_OUT':
         input_df['type_CASH_OUT'] = True
     elif transaction_type == 'DEBIT':
         input_df['type_DEBIT'] = True
@@ -125,8 +125,9 @@ if st.button("Predict Fraud"):
     single_input_df = pd.DataFrame(scaled_input, columns=feature_columns)
 
     st.write("The plot below shows how each feature pushed the prediction (blue for negative impact, red for positive impact).")
-    # --- CRITICAL FIX HERE: Remove shap.initjs() and shap.getjs() ---
-    # shap.force_plot().html() already contains the necessary HTML/JS.
+    
+    # --- THIS IS THE CRITICAL CHANGE: NO shap.initjs() or shap.getjs() ---
+    # shap.force_plot().html() already contains all necessary HTML/JS for rendering.
     html_plot = shap.force_plot(expected_value_for_plot_single, shap_values_for_plot_single, single_input_df, plot_cmap='RdBu').html()
     st.components.v1.html(html_plot, height=300, scrolling=True)
 
