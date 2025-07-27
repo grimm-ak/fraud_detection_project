@@ -96,18 +96,27 @@ if st.button("🚀 Predict Fraud"):
     else:
         st.success(f"✅ Transaction is Legitimate (Confidence: {1 - proba:.2f})")
 
-    # --- SHAP Explanation ---
+    
+        # --- SHAP Explanation ---
     try:
         st.markdown("#### 🧠 Why this prediction? (SHAP Explanation)")
         explainer = shap.TreeExplainer(model)
         shap_values = explainer.shap_values(scaled_input)
         shap.initjs()
+        
         fig, ax = plt.subplots(figsize=(10, 4))
-        shap.plots._waterfall.waterfall_legacy(explainer.expected_value[1], shap_values[1][0],
-                                                feature_names=required_features, max_display=12, show=False)
+        shap.plots._waterfall.waterfall_legacy(
+            explainer.expected_value[1],
+            shap_values[1][0],
+            feature_names=required_features,
+            max_display=12,
+            show=False,
+            ax=ax  # ✅ Attach to axis
+        )
         st.pyplot(fig)
     except Exception as e:
         st.warning(f"⚠️ SHAP explanation could not be displayed: {str(e)}")
+
 
     # --- Save Prediction ---
     try:
