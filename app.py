@@ -74,6 +74,6 @@ if st.button("🔍 Predict Fraud"):
 
     st.markdown("#### 🔎 SHAP Explanation")
 
-    shap.initjs()
+
     shap.plots._waterfall.waterfall_legacy(explainer.expected_value[1], shap_values[1][0], feature_names=input_df.columns)
     st.pyplot(bbox_inches='tight')
