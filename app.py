@@ -79,7 +79,7 @@ tab1, tab2 = st.tabs(["🚨 Predict Fraud", "📈 Feature Impact Stats"])
 with tab1:
     st.header("📝 Enter Transaction Details")
 
-    preset_choice = st.selectbox("📦 Choose a Preset Transaction", list(presets.keys()))
+    preset_choice = st.selectbox("📦 Choose a Preset Transaction or Enter Manually", list(presets.keys()))
     preset = presets[preset_choice]
 
     col1, col2 = st.columns(2)
