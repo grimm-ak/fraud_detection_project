@@ -173,20 +173,20 @@ This plot breaks down the model’s fraud prediction for a specific transaction.
 
 ## 13. Folder Structure
 
-fraud_detection_project/  #  main project repository folder
-├── .github/              # GitHub-specific configurations ( Workflows for automated pings)
+fraud_detection_project/
+├── .github/
 │   └── workflows/
-│       └── ping.yml      # GitHub Actions workflow to keep app awake
-├── .streamlit/           # Streamlit configuration for deployment
-│   └── config.toml       # Streamlit app configuration (e.g., file watcher settings)
-├── app.py                # The main Streamlit web application script for prediction
-├── best_lgbm_clf_model.joblib # Trained LightGBM model (saved for deployment)
-├── scaler.joblib         # Fitted StandardScaler (saved for deployment)
-├── requirements.txt      # Python dependencies for the Streamlit app
-├── Fraud_Detection_Notebook.ipynb # Your detailed Jupyter/Colab notebook with all code (EDA, training, SHAP)
-├── README.md             # This project's main documentation file
-└── screenshots/          # Folder for project screenshots to embed in README.md
-    └── app_preview.png   # Screenshot of the deployed Streamlit app
+│       └── ping.yml
+├── .streamlit/
+│   └── config.toml
+├── app.py
+├── best_lgbm_clf_model.joblib
+├── scaler.joblib
+├── requirements.txt
+├── Fraud_Detection_Notebook.ipynb
+├── README.md
+└── screenshots/
+    └── app_preview.png
 
 ## 14. License
 
