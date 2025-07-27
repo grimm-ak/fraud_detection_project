@@ -98,30 +98,12 @@ with tab1:
 
         # --- Result Section ---
         st.subheader("📢 Prediction Result")
-    if prediction == 1:
-        st.markdown("## 📢 Prediction Result")
-        st.error("🔴 **Warning: FRAUDULENT TRANSACTION Detected!**")
-        st.markdown(
-            f"""
-            🧠 **Model Confidence:** `{proba:.2%}`
-
-            ⚠️ Our model believes with high confidence that this transaction is **likely to be fraudulent**.
-
-            Immediate review or action is recommended.
-            """
-        )
-    else:
-        st.markdown("## 📢 Prediction Result")
-        st.success("🟢 **This transaction appears to be LEGITIMATE.**")
-        st.markdown(
-            f"""
-            🧠 **Model Confidence:** `{(1 - proba):.2%}`
-
-            ✅ Based on the transaction details you provided, our model is very confident that this is a **normal, safe transaction**.
-
-            No suspicious patterns were detected.
-            """
-        )
+        if prediction == 1:
+            st.error("🔴 FRAUDULENT TRANSACTION DETECTED!")
+            st.markdown(f"🧠 **Model Confidence:** `{proba:.4f}`")
+        else:
+            st.success("🟢 LEGITIMATE TRANSACTION.")
+            st.markdown(f"🧠 **Model Confidence:** `{1 - proba:.4f}`")
 
         # --- SHAP Waterfall Plot ---
         with st.expander("🔍 Why this prediction? (SHAP Waterfall)", expanded=True):
