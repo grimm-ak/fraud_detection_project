@@ -24,6 +24,13 @@ def load_model_and_scaler():
 
 model, scaler = load_model_and_scaler()
 
+# ✅ SHAP Explainer Cache
+@st.cache_resource
+def get_shap_explainer(model):
+    return shap.Explainer(model)
+
+explainer = get_shap_explainer(model)
+
 # --- Feature columns (must match training) ---
 feature_columns = [
     'step', 'amount', 'oldbalanceOrg', 'newbalanceOrig',
@@ -95,7 +102,6 @@ if st.button("Predict Fraud"):
 
     # SHAP Explanation using Waterfall Plot
     st.subheader("Why this prediction? (Feature Contributions)")
-    explainer = shap.Explainer(model)
     shap_values = explainer(scaled_df)
 
     # Clear previous matplotlib figures
@@ -104,6 +110,5 @@ if st.button("Predict Fraud"):
     shap.plots.waterfall(shap_values[0], show=False)
     fig = plt.gcf()
     st.pyplot(fig)
-
 
     st.info("💡 Red pushes the prediction toward fraud; blue pushes toward legitimate.")
