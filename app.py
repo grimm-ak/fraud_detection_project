@@ -1,41 +1,55 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import joblib
-import shap
 import matplotlib.pyplot as plt
+import shap
+import joblib
 
-st.set_page_config(page_title="Fraud Detection System", layout="centered")
+# Load the saved model and scaler
+model = joblib.load("best_lgbm_clf_model.joblib")
+scaler = joblib.load("scaler.joblib")
 
-# --- Load model and scaler ---
-@st.cache_resource
-def load_model_and_scaler():
-    model = joblib.load('best_lgbm_clf_model.joblib')
-    scaler = joblib.load('scaler.joblib')
-    return model, scaler
+# Load SHAP explainer
+explainer = shap.Explainer(model)
 
-model, scaler = load_model_and_scaler()
-
-@st.cache_resource
-def get_shap_explainer(_model):
-    return shap.Explainer(_model)
-
-explainer = get_shap_explainer(model)
-
+# Define expected feature columns
 feature_columns = [
-    'step', 'amount', 'oldbalanceOrg', 'newbalanceOrig',
-    'oldbalanceDest', 'newbalanceDest',
-    'balanceDiffOrg', 'balanceDiffDest',
+    'step', 'amount', 'oldbalanceOrg', 'newbalanceOrig', 
+    'oldbalanceDest', 'newbalanceDest', 'balanceDiffOrg', 'balanceDiffDest',
     'type_CASH_OUT', 'type_DEBIT', 'type_PAYMENT', 'type_TRANSFER'
 ]
 
-# Title
+# ---- UI Starts ----
+st.set_page_config(page_title="Fraud Detection", layout="wide")
 st.title("💸 Real-Time Fraud Detection System")
 st.markdown("Enter transaction details below to check for fraud in real time.")
 
-# Form inside expander to collapse after prediction
+# --- Info Sections ---
+with st.expander("ℹ️ Model Info", expanded=False):
+    st.markdown("""
+    - **Model**: LightGBM Classifier  
+    - **Trained on**: 6M+ financial transactions  
+    - **Includes**: Feature scaling, engineered features, SHAP interpretability  
+    - **Transaction Types Used**: One-hot encoded  
+    """)
+
+with st.expander("🔒 Security Note", expanded=False):
+    st.markdown("""
+    - No user data is stored.  
+    - Model runs locally or in secured cloud.  
+    - This is a demo and not a substitute for financial institution systems.
+    """)
+
+with st.expander("🎯 User Experience", expanded=False):
+    st.markdown("""
+    - Simple two-column layout  
+    - Fast feedback after click  
+    - Explanation always shown below prediction
+    """)
+
+# --- Input Form ---
 with st.expander("🧾 Transaction Details (Click to Expand/Collapse)", expanded=True):
     col1, col2 = st.columns(2)
+
     with col1:
         step = st.number_input("Step (hour)", min_value=1, value=1, key="step")
         amount = st.number_input("Amount", min_value=0.0, value=1000.0, format="%.2f", key="amount")
@@ -52,8 +66,8 @@ with st.expander("🧾 Transaction Details (Click to Expand/Collapse)", expanded
         )
         st.markdown("*(Note: We use derived features instead of anonymized V1–V28.)*")
 
-# --- Predict ---
-if st.button("Predict Fraud"):
+# --- Predict Button ---
+if st.button("🚨 Predict Fraud"):
     # Prepare input
     input_df = pd.DataFrame(0, index=[0], columns=feature_columns)
     input_df['step'] = step
@@ -71,7 +85,7 @@ if st.button("Predict Fraud"):
     input_df['type_PAYMENT'] = transaction_type == 'PAYMENT'
     input_df['type_TRANSFER'] = transaction_type == 'TRANSFER'
 
-    # Scale
+    # Scale features
     scaled_array = scaler.transform(input_df[feature_columns])
     scaled_df = pd.DataFrame(scaled_array, columns=feature_columns)
 
@@ -79,9 +93,10 @@ if st.button("Predict Fraud"):
     prediction_proba = model.predict_proba(scaled_df)[:, 1][0]
     prediction_label = model.predict(scaled_df)[0]
 
-    # --- Show result at top ---
+    # --- Output Section ---
     st.markdown("---")
     st.header("🔍 Prediction Result")
+
     if prediction_label == 1:
         st.error("🔴 FRAUDULENT TRANSACTION DETECTED!")
     else:
@@ -89,7 +104,7 @@ if st.button("Predict Fraud"):
 
     st.write(f"**Fraud Probability:** `{prediction_proba:.4f}`")
 
-    # --- SHAP Plot ---
+    # SHAP Explanation
     st.subheader("Why this prediction? (Feature Contributions)")
     shap_values = explainer(scaled_df)
     plt.clf()
@@ -98,27 +113,3 @@ if st.button("Predict Fraud"):
     st.pyplot(fig)
 
     st.info("💡 Red pushes the prediction toward fraud; blue pushes toward legitimate.")
-
-    # --- Extra Info ---
-    with st.expander("ℹ️ Model Info"):
-        st.markdown("""
-        - **Model**: LightGBM Classifier  
-        - **Trained on**: 6M+ financial transactions  
-        - **Includes**: Feature scaling, engineered features, SHAP interpretability  
-        - **Transaction Types Used**: One-hot encoded  
-        """)
-
-    with st.expander("🔒 Security Note"):
-        st.markdown("""
-        - No user data is stored.  
-        - Model runs locally or in secured cloud.  
-        - This is a demo and not a substitute for financial institution systems.
-        """)
-
-    with st.expander("🎯 User Experience"):
-        st.markdown("""
-        - Simple two-column layout  
-        - Fast feedback after click  
-        - Explanation always shown below prediction
-        """)
-
