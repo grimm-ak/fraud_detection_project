@@ -173,7 +173,24 @@ This plot breaks down the model’s fraud prediction for a specific transaction.
 
 ## 13. Folder Structure
 
-<script src="https://gist.github.com/grimm-ak/23f1c7ab19db30e075f20dc739ae6a5f.js"></script>
+The project repository is organized to provide a clear and maintainable structure for development, deployment, and documentation.
+
+
+
+fraud_detection_project/
+├── .github/
+│   └── workflows/
+│       └── ping.yml
+├── .streamlit/
+│   └── config.toml
+├── app.py
+├── best_lgbm_clf_model.joblib
+├── scaler.joblib
+├── requirements.txt
+├── Fraud_Detection_Notebook.ipynb
+├── README.md
+└── screenshots/
+└── app_preview.png
 
 ## 14. License
 
