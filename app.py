@@ -98,11 +98,14 @@ with tab1:
 
         # --- Human-Readable Confidence ---
         if proba >= 0.9:
-            confidence_level = "High"
+            confidence_level = "High Confidence"
+            confidence_msg = "The model is **very certain** about its decision."
         elif proba >= 0.6:
-            confidence_level = "Medium"
+            confidence_level = "Medium Confidence"
+            confidence_msg = "The model is **fairly confident**, but not 100% sure."
         else:
-            confidence_level = "Low"
+            confidence_level = "Low Confidence"
+            confidence_msg = "The model has **low certainty**, so use this prediction carefully."
 
         # --- Result Section ---
         st.subheader("📢 Prediction Result")
@@ -113,6 +116,8 @@ with tab1:
             st.success("🟢 LEGITIMATE TRANSACTION.")
             st.markdown(f"🧠 **Model Confidence:** `{confidence_level}` (`{1 - proba:.4f}`)")
 
+        st.caption(confidence_msg)
+
         # --- SHAP Waterfall Plot ---
         with st.expander("🔍 Why this prediction? (SHAP Waterfall)", expanded=True):
             shap_values = explainer(scaled_df)
@@ -120,7 +125,7 @@ with tab1:
             plt.clf()
             shap.plots.waterfall(shap_values[0], show=False)
             st.pyplot(plt.gcf())
-            st.caption("Red pushes toward fraud | Blue pushes toward legit")
+            st.caption("🔎 Red pushes toward fraud | Blue pushes toward legit")
 
             # Store for Tab 2
             st.session_state['last_shap'] = shap_values[0]
