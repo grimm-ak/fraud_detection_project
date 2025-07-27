@@ -61,15 +61,16 @@ presets = {
         'newbalanceDest': 3750.0,
         'transaction_type': 'TRANSFER'
     },
-    "📥 Typical Payment": {
-        'step': 320,
-        'amount': 120.00,
-        'oldbalanceOrg': 2000.0,
-        'newbalanceOrig': 1880.0,
-        'oldbalanceDest': 1000.0,
-        'newbalanceDest': 1120.0,
-        'transaction_type': 'PAYMENT'
+    "🏧 High-Value Cash Out (Suspicious)": {
+        'step': 120,
+        'amount': 980000.00,
+        'oldbalanceOrg': 1000000.0,
+        'newbalanceOrig': 20000.0,
+        'oldbalanceDest': 0.0,
+        'newbalanceDest': 980000.0,
+        'transaction_type': 'CASH_OUT'
     }
+    
 }
 
 # --- Tabs Layout ---
