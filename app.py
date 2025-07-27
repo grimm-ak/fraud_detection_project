@@ -1,3 +1,4 @@
+# Add this below the imports (after other imports)
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -50,23 +51,44 @@ with st.expander("ℹ️ Show Model Info / Security Notes"):
     - **SHAP waterfall** explains key features influencing the decision  
     """)
 
+# --- Preset Options ---
+presets = {
+    "🔘 None (Manual Entry)": {},
+    "✅ Legitimate Transfer": {
+        "step": 50, "amount": 500.0, "oldbalanceOrg": 6000.0, "newbalanceOrig": 5500.0,
+        "oldbalanceDest": 1000.0, "newbalanceDest": 1500.0, "transaction_type": "TRANSFER"
+    },
+    "⚠️ Suspicious High-Value Cash Out": {
+        "step": 120, "amount": 9000.0, "oldbalanceOrg": 10000.0, "newbalanceOrig": 1000.0,
+        "oldbalanceDest": 500.0, "newbalanceDest": 9500.0, "transaction_type": "CASH_OUT"
+    },
+    "🔍 Edge Case - Low Balance, High Movement": {
+        "step": 200, "amount": 4500.0, "oldbalanceOrg": 500.0, "newbalanceOrig": 0.0,
+        "oldbalanceDest": 0.0, "newbalanceDest": 4500.0, "transaction_type": "DEBIT"
+    }
+}
+
 # --- Tabs Layout ---
 tab1, tab2 = st.tabs(["🚨 Predict Fraud", "📈 Feature Impact Stats"])
 
 with tab1:
     st.header("📝 Enter Transaction Details")
 
+    preset_choice = st.selectbox("📦 Choose a Preset Transaction", list(presets.keys()))
+    preset = presets[preset_choice]
+
     col1, col2 = st.columns(2)
     with col1:
-        step = st.number_input("Step (hour)", min_value=1, value=1)
-        amount = st.number_input("Amount", min_value=0.0, value=1000.0, format="%.2f")
-        oldbalanceOrg = st.number_input("Old Balance Originator", min_value=0.0, value=10000.0, format="%.2f")
-        newbalanceOrig = st.number_input("New Balance Originator", min_value=0.0, value=9000.0, format="%.2f")
-        oldbalanceDest = st.number_input("Old Balance Destination", min_value=0.0, value=500.0, format="%.2f")
-        newbalanceDest = st.number_input("New Balance Destination", min_value=0.0, value=1500.0, format="%.2f")
+        step = st.number_input("Step (hour)", min_value=1, value=preset.get("step", 1))
+        amount = st.number_input("Amount", min_value=0.0, value=preset.get("amount", 1000.0), format="%.2f")
+        oldbalanceOrg = st.number_input("Old Balance Originator", min_value=0.0, value=preset.get("oldbalanceOrg", 10000.0), format="%.2f")
+        newbalanceOrig = st.number_input("New Balance Originator", min_value=0.0, value=preset.get("newbalanceOrig", 9000.0), format="%.2f")
+        oldbalanceDest = st.number_input("Old Balance Destination", min_value=0.0, value=preset.get("oldbalanceDest", 500.0), format="%.2f")
+        newbalanceDest = st.number_input("New Balance Destination", min_value=0.0, value=preset.get("newbalanceDest", 1500.0), format="%.2f")
 
     with col2:
-        transaction_type = st.selectbox("Transaction Type", ['CASH_IN', 'CASH_OUT', 'DEBIT', 'PAYMENT', 'TRANSFER'])
+        transaction_type = st.selectbox("Transaction Type", ['CASH_IN', 'CASH_OUT', 'DEBIT', 'PAYMENT', 'TRANSFER'],
+                                        index=['CASH_IN', 'CASH_OUT', 'DEBIT', 'PAYMENT', 'TRANSFER'].index(preset.get("transaction_type", "CASH_IN")))
         st.caption("*(Derived features used instead of anonymized V1–V28)*")
 
     st.markdown("---")
