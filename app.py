@@ -1,85 +1,78 @@
 import streamlit as st
+import pandas as pd
 import joblib
 import shap
-import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 
-# Page setup
-st.set_page_config(page_title="💳 Fraud Detection", layout="wide")
-st.title("💳 Real-Time Fraud Detection App")
+# Load saved model and scaler
+model = joblib.load('best_lgbm_clf_model.joblib')
+scaler = joblib.load('scaler.joblib')
 
-# Sidebar - Model Information
-st.sidebar.markdown("### 📊 Model Information")
-st.sidebar.markdown("**Model:** LightGBM Classifier")
-st.sidebar.markdown("**Test AUC:** ~0.98")
-st.sidebar.markdown("**Precision:** ~0.93")
-st.sidebar.markdown("**Recall:** ~0.90")
-st.sidebar.markdown("**Interpretability:** SHAP Waterfall Plot")
+# Load required feature list
+required_features = joblib.load('required_features.joblib')
 
-# Sidebar - Security Note
-st.sidebar.markdown("---")
-st.sidebar.markdown("⚠️ **Note:** This is a demo project for educational purposes. Real-world fraud detection systems involve additional security, regulatory compliance, and complex pipelines.")
+st.set_page_config(page_title="Fraud Detection", layout="centered")
+st.title("🚨 Fraud Detection App")
 
-# Load model and scaler
-model = joblib.load("best_lgbm_clf_model.joblib")
-scaler = joblib.load("scaler.joblib")
+# User Experience Note
+st.info("🔐 This app uses a trained machine learning model to predict fraud based on financial transaction inputs. All predictions are processed locally and securely.")
 
-# Required features
-required_features = ['step', 'amount', 'oldbalanceOrg', 'newbalanceOrig',
-                     'oldbalanceDest', 'newbalanceDest', 'balanceDiffOrg',
-                     'balanceDiffDest', 'type_CASH_OUT', 'type_DEBIT',
-                     'type_PAYMENT', 'type_TRANSFER']
+st.markdown("### 🔧 Enter transaction details:")
 
-# UI inputs
-st.markdown("#### 📝 Enter Transaction Details")
+# Input form
+step = st.number_input("Step", min_value=1, max_value=100000, value=1)
+amount = st.number_input("Transaction Amount", min_value=0.0, value=1000.0)
+oldbalanceOrg = st.number_input("Old Balance Origin", min_value=0.0, value=5000.0)
+newbalanceOrig = st.number_input("New Balance Origin", min_value=0.0, value=4000.0)
 
-user_input = {}
-col1, col2 = st.columns(2)
-with col1:
-    user_input['step'] = st.number_input("Step (Hour)", min_value=1, max_value=744, value=1)
-    user_input['amount'] = st.number_input("Amount", min_value=0.0)
-    user_input['oldbalanceOrg'] = st.number_input("Old Balance Origin", min_value=0.0)
-    user_input['newbalanceOrig'] = st.number_input("New Balance Origin", min_value=0.0)
-    user_input['balanceDiffOrg'] = st.number_input("Balance Diff Origin", min_value=-1e7, max_value=1e7)
+if st.button("Predict Fraud"):
+    # Build input in correct order with default 0s, then replace filled fields
+    input_df = pd.DataFrame(0, index=[0], columns=required_features)
+    input_df['step'] = step
+    input_df['amount'] = amount
+    input_df['oldbalanceOrg'] = oldbalanceOrg
+    input_df['newbalanceOrig'] = newbalanceOrig
 
-with col2:
-    user_input['oldbalanceDest'] = st.number_input("Old Balance Dest", min_value=0.0)
-    user_input['newbalanceDest'] = st.number_input("New Balance Dest", min_value=0.0)
-    user_input['balanceDiffDest'] = st.number_input("Balance Diff Dest", min_value=-1e7, max_value=1e7)
-    tx_type = st.selectbox("Transaction Type", ["CASH_OUT", "DEBIT", "PAYMENT", "TRANSFER"])
-    for t in ["CASH_OUT", "DEBIT", "PAYMENT", "TRANSFER"]:
-        user_input[f"type_{t}"] = 1 if tx_type == t else 0
+    # Scale
+    input_scaled = scaler.transform(input_df)
 
-# Reset button
-if st.button("🔄 Reset Inputs"):
-    st.experimental_rerun()
+    # Predict
+    prediction = model.predict(input_scaled)[0]
+    probability = model.predict_proba(input_scaled)[0][1]
 
-# Prediction
-if st.button("🚨 Predict Fraud"):
-    input_df = pd.DataFrame([user_input])
-    scaled_input = scaler.transform(input_df)
-    pred = model.predict(scaled_input)[0]
-    pred_proba = model.predict_proba(scaled_input)[0][1]
+    # Output
+    if prediction == 1:
+        st.error(f"⚠️ The transaction is predicted to be **FRAUDULENT**.")
+    else:
+        st.success(f"✅ The transaction is predicted to be **LEGITIMATE**.")
 
-    st.markdown("#### 🧮 Fraud Prediction")
-    st.write(f"**Prediction:** {'FRAUD ❗' if pred == 1 else 'Not Fraud ✅'}")
-    st.write(f"**Confidence:** {pred_proba * 100:.2f}%")
+    st.markdown(f"**Model Confidence:** `{round(probability*100, 2)}%` that this is fraud.")
 
-    # Visual confidence bar
-    st.markdown("#### 🎯 Model Confidence Score")
-    st.progress(int(pred_proba * 100))
-
-    # SHAP Explanation
-    st.markdown("#### 🔎 SHAP Explanation")
+    # SHAP explanation (optional)
     try:
         explainer = shap.TreeExplainer(model)
-        shap_values = explainer.shap_values(scaled_input)
+        shap_values = explainer.shap_values(input_scaled)
+        st.markdown("#### 🔎 SHAP Explanation")
         shap.initjs()
-        fig, ax = plt.subplots(figsize=(10, 3))
-        shap.plots._waterfall.waterfall_legacy(
-            explainer.expected_value[1], shap_values[1][0], feature_names=input_df.columns.tolist(), max_display=12, show=False
-        )
-        st.pyplot(fig)
+        fig = shap.plots._waterfall.waterfall_legacy(explainer.expected_value[1], shap_values[1][0], feature_names=required_features, show=False)
+        st.pyplot(bbox_inches='tight')
     except Exception as e:
-        st.warning(f"⚠️ SHAP explanation could not be displayed: {str(e)}")
+        st.warning(f"⚠️ SHAP explanation could not be displayed: {e}")
+
+# Model Info Section
+with st.expander("📦 Model Information"):
+    st.markdown("""
+    - **Model**: LightGBM Classifier  
+    - **Training Data**: ~6 million transactions  
+    - **Features**: Custom engineered (step, amount, balances, etc.)  
+    - **Balanced**: Using class weights for fraud detection  
+    - **Interpretability**: SHAP-based  
+    """)
+
+# Security Note
+with st.expander("🔐 Security Note"):
+    st.markdown("""
+    - This app does **not collect or store** any personal data.  
+    - Model is loaded and run locally via Streamlit.  
+    - Predictions are for demo/educational purposes only.  
+    """)
