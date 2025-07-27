@@ -1,149 +1,132 @@
 import streamlit as st
-import pandas as pd
-import numpy as np
 import joblib
+import numpy as np
 import shap
 import matplotlib.pyplot as plt
+import pandas as pd
 
-# --- Streamlit Config ---
-st.set_page_config(page_title="💸 Fraud Detection", layout="centered")
+# Load the model and scaler
+model = joblib.load("best_lgbm_clf_model.joblib")
+scaler = joblib.load("scaler.joblib")
 
-# --- Load Model and Scaler ---
-@st.cache_resource
-def load_model_and_scaler():
-    model = joblib.load('best_lgbm_clf_model.joblib')
-    scaler = joblib.load('scaler.joblib')
-    return model, scaler
+# Custom preset transactions
+presets = {
+    "None": {},
+    "🔴 Typical Fraud (Cash Out)": {
+        "step": 350,
+        "amount": 9000.0,
+        "oldbalanceOrg": 0.0,
+        "newbalanceOrig": 0.0,
+        "oldbalanceDest": 0.0,
+        "newbalanceDest": 9000.0,
+        "transaction_type": "CASH_OUT"
+    },
+    "🟢 Safe Payment": {
+        "step": 120,
+        "amount": 500.0,
+        "oldbalanceOrg": 1500.0,
+        "newbalanceOrig": 1000.0,
+        "oldbalanceDest": 2000.0,
+        "newbalanceDest": 2500.0,
+        "transaction_type": "PAYMENT"
+    },
+    "🔁 Suspicious Transfer": {
+        "step": 450,
+        "amount": 10000.0,
+        "oldbalanceOrg": 10000.0,
+        "newbalanceOrig": 0.0,
+        "oldbalanceDest": 1000.0,
+        "newbalanceDest": 11000.0,
+        "transaction_type": "TRANSFER"
+    }
+}
 
-model, scaler = load_model_and_scaler()
+st.set_page_config(layout="wide")
+st.title("💳 Fraud Detection App")
 
-@st.cache_resource
-def get_shap_explainer(_model):
-    return shap.Explainer(_model)
-
-explainer = get_shap_explainer(model)
-
-feature_columns = [
-    'step', 'amount', 'oldbalanceOrg', 'newbalanceOrig',
-    'oldbalanceDest', 'newbalanceDest',
-    'balanceDiffOrg', 'balanceDiffDest',
-    'type_CASH_OUT', 'type_DEBIT', 'type_PAYMENT', 'type_TRANSFER'
-]
-
-# --- App Title ---
-st.title("💸 Real-Time Fraud Detection System")
-
-# --- Collapsible Info Section ---
-with st.expander("ℹ️ Click to Show/Hide Model Info, Security & UX"):
+with st.expander("ℹ️ Model Info"):
     st.markdown("""
-    ### 📌 Model Info  
-    - LightGBM classifier trained on 6M+ transactions  
+    **LightGBM classifier trained on 6M+ transactions**  
     - Uses derived balance features and one-hot encoded types  
     - Calibrated using GridSearchCV with class balancing  
-
-    ### 🔐 Security Note  
-    - All predictions happen locally  
-    - No transaction data is stored or sent externally  
-
-    ### 🎯 User Experience  
-    - Instant predictions with clear visual explanation  
-    - SHAP waterfall plot shows **why** the model made its decision  
     """)
 
-# --- Tabs Layout ---
-tab1, tab2 = st.tabs(["🔍 Predict Fraud", "📈 Feature Impact Stats"])
+with st.expander("🔒 Security Note"):
+    st.markdown("All predictions happen locally. No transaction data is stored or sent externally.")
+
+with st.expander("🎯 User Experience"):
+    st.markdown("""
+    - Instant predictions with clear visual explanation  
+    - Waterfall SHAP plot shows the _why_ behind every decision  
+    """)
+
+tab1, tab2 = st.tabs(["🔍 Predict", "📊 Feature Impact"])
 
 with tab1:
-    st.header("📝 Enter Transaction Details")
+    st.subheader("📥 Enter Transaction Details")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        step = st.number_input("Step (hour)", min_value=1, value=1)
-        amount = st.number_input("Amount", min_value=0.0, value=1000.0, format="%.2f")
-        oldbalanceOrg = st.number_input("Old Balance Originator", min_value=0.0, value=10000.0, format="%.2f")
-        newbalanceOrig = st.number_input("New Balance Originator", min_value=0.0, value=9000.0, format="%.2f")
-        oldbalanceDest = st.number_input("Old Balance Destination", min_value=0.0, value=500.0, format="%.2f")
-        newbalanceDest = st.number_input("New Balance Destination", min_value=0.0, value=1500.0, format="%.2f")
+    selected_preset = st.selectbox("🎛️ Load a Test Transaction Preset", list(presets.keys()))
+    preset = presets.get(selected_preset, {})
 
-    with col2:
-        transaction_type = st.selectbox("Transaction Type", ['CASH_IN', 'CASH_OUT', 'DEBIT', 'PAYMENT', 'TRANSFER'])
-        st.markdown("*(Derived features used instead of V1–V28 anonymized ones)*")
+    step = st.number_input("Step (hour)", min_value=1, value=preset.get("step", 1))
+    amount = st.number_input("Amount", min_value=0.0, value=preset.get("amount", 1000.0), format="%.2f")
+    oldbalanceOrg = st.number_input("Old Balance Originator", min_value=0.0, value=preset.get("oldbalanceOrg", 10000.0), format="%.2f")
+    newbalanceOrig = st.number_input("New Balance Originator", min_value=0.0, value=preset.get("newbalanceOrig", 9000.0), format="%.2f")
+    oldbalanceDest = st.number_input("Old Balance Destination", min_value=0.0, value=preset.get("oldbalanceDest", 500.0), format="%.2f")
+    newbalanceDest = st.number_input("New Balance Destination", min_value=0.0, value=preset.get("newbalanceDest", 1500.0), format="%.2f")
 
-    st.markdown("---")
+    transaction_type = st.selectbox(
+        "Transaction Type",
+        ['CASH_IN', 'CASH_OUT', 'DEBIT', 'PAYMENT', 'TRANSFER'],
+        index=['CASH_IN', 'CASH_OUT', 'DEBIT', 'PAYMENT', 'TRANSFER'].index(preset.get("transaction_type", "CASH_IN"))
+    )
 
-    if st.button("🚨 Predict Fraud", use_container_width=True):
-        # --- Prepare Input ---
-        input_df = pd.DataFrame(0, index=[0], columns=feature_columns)
-        input_df['step'] = step
-        input_df['amount'] = amount
-        input_df['oldbalanceOrg'] = oldbalanceOrg
-        input_df['newbalanceOrig'] = newbalanceOrig
-        input_df['oldbalanceDest'] = oldbalanceDest
-        input_df['newbalanceDest'] = newbalanceDest
-        input_df['balanceDiffOrg'] = oldbalanceOrg - newbalanceOrig
-        input_df['balanceDiffDest'] = newbalanceDest - oldbalanceDest
+    if st.button("🚀 Predict"):
+        type_encoded = [1 if transaction_type == t else 0 for t in ['CASH_IN', 'CASH_OUT', 'DEBIT', 'PAYMENT', 'TRANSFER']]
+        input_data = [step, amount, oldbalanceOrg, newbalanceOrig, oldbalanceDest, newbalanceDest] + type_encoded
+        input_array = np.array(input_data).reshape(1, -1)
+        input_scaled = scaler.transform(input_array)
 
-        input_df['type_CASH_OUT'] = transaction_type == 'CASH_OUT'
-        input_df['type_DEBIT'] = transaction_type == 'DEBIT'
-        input_df['type_PAYMENT'] = transaction_type == 'PAYMENT'
-        input_df['type_TRANSFER'] = transaction_type == 'TRANSFER'
+        pred = model.predict(input_scaled)[0]
+        pred_proba = model.predict_proba(input_scaled)[0][pred]
 
-        # --- Scale Input ---
-        scaled_input = scaler.transform(input_df)
-        scaled_df = pd.DataFrame(scaled_input, columns=feature_columns)
-
-        # --- Prediction ---
-        prediction = model.predict(scaled_df)[0]
-        proba = model.predict_proba(scaled_df)[0][1]
-
-        confidence = proba if prediction == 1 else (1 - proba)
-        confidence_label = "High Confidence" if confidence >= 0.90 else "Medium Confidence" if confidence >= 0.70 else "Low Confidence"
-        confidence_color = "🟢" if confidence_label == "High Confidence" else "🟡" if confidence_label == "Medium Confidence" else "🔴"
-
-        # --- Result Section ---
         st.subheader("📢 Prediction Result")
-        if prediction == 1:
-            st.error("🔴 FRAUDULENT TRANSACTION DETECTED!")
+        if pred == 1:
+            st.markdown("🔴 **FRAUDULENT TRANSACTION.**")
         else:
-            st.success("🟢 LEGITIMATE TRANSACTION.")
+            st.markdown("🟢 **LEGITIMATE TRANSACTION.**")
 
-        st.markdown(f"🧠 **Model Confidence:** {confidence_color} **{confidence_label}** (`{confidence * 100:.2f}%`)")
-        if confidence_label == "Low Confidence":
-            st.warning("⚠️ The model is unsure. Consider verifying this result manually.")
+        if pred_proba >= 0.98:
+            confidence_text = f"High Confidence ({pred_proba:.4f})"
+            color = "🧠"
+        elif pred_proba >= 0.90:
+            confidence_text = f"Medium Confidence ({pred_proba:.4f})"
+            color = "⚠️"
+        else:
+            confidence_text = f"Low Confidence ({pred_proba:.4f})"
+            color = "❗"
 
-        # --- SHAP Waterfall Plot ---
-        with st.expander("🔍 Why this prediction? (SHAP Waterfall)", expanded=True):
-            shap_values = explainer(scaled_df)
+        st.markdown(f"{color} **Model Confidence:** {confidence_text}")
+        if pred_proba < 0.90:
+            st.markdown("⚠️ Model has low certainty, so use this prediction carefully.")
 
-            plt.clf()
-            shap.plots.waterfall(shap_values[0], show=False)
-            st.pyplot(plt.gcf())
-            st.caption("Red pushes toward fraud | Blue pushes toward legit")
-
-            # Store for Tab 2
-            st.session_state['last_shap'] = shap_values[0]
-            st.session_state['last_features'] = scaled_df.iloc[0]
+        # SHAP explanation
+        explainer = shap.TreeExplainer(model)
+        shap_values = explainer.shap_values(input_scaled)
+        st.session_state.shap_plot = shap_values
+        st.session_state.input_scaled = input_scaled
 
 with tab2:
-    st.header("📈 Feature Impact on Prediction")
-
-    if 'last_shap' in st.session_state:
-        shap_values = st.session_state['last_shap'].values
-        features = st.session_state['last_features']
-
-        feature_impact_df = pd.DataFrame({
-            'Feature': features.index,
-            'Value': features.values,
-            'SHAP Impact': shap_values
-        }).sort_values(by='SHAP Impact', key=abs, ascending=False)
-
-        st.markdown("#### 🔍 Top 5 Key Features")
-        st.dataframe(feature_impact_df.head(5), use_container_width=True)
-
-        most_positive = feature_impact_df.loc[feature_impact_df['SHAP Impact'].idxmax()]
-        most_negative = feature_impact_df.loc[feature_impact_df['SHAP Impact'].idxmin()]
-
-        st.markdown(f"🟥 **Most Fraud-Inducing:** `{most_positive['Feature']}` → SHAP = `{most_positive['SHAP Impact']:.3f}`")
-        st.markdown(f"🟦 **Most Fraud-Reducing:** `{most_negative['Feature']}` → SHAP = `{most_negative['SHAP Impact']:.3f}`")
+    st.subheader("📊 SHAP Feature Impact")
+    if "shap_plot" in st.session_state:
+        fig, ax = plt.subplots(figsize=(10, 5))
+        shap.waterfall_plot(shap.Explanation(values=st.session_state.shap_plot[1][0],
+                                             base_values=explainer.expected_value[1],
+                                             data=st.session_state.input_scaled[0],
+                                             feature_names=['step', 'amount', 'oldbalanceOrg', 'newbalanceOrig', 
+                                                            'oldbalanceDest', 'newbalanceDest', 
+                                                            'CASH_IN', 'CASH_OUT', 'DEBIT', 'PAYMENT', 'TRANSFER']),
+                             max_display=12, show=False)
+        st.pyplot(fig)
     else:
-        st.info("⚠️ Make a prediction first to view feature impact.")
+        st.info("Run a prediction first to see SHAP explanation.")
