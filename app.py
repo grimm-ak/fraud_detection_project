@@ -1,28 +1,16 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import joblib
 import shap
+import numpy as np
 import matplotlib.pyplot as plt
 
-# --- Streamlit Page Configuration ---
-st.set_page_config(page_title="Fraud Detection System", layout="centered")
+# --- Page Config ---
+st.set_page_config(page_title="Fraud Detection App", layout="centered")
 
-# --- Load model and scaler ---
-@st.cache_resource
-def load_model_and_scaler():
-    try:
-        model = joblib.load('best_lgbm_clf_model.joblib')
-        scaler = joblib.load('scaler.joblib')
-        return model, scaler
-    except FileNotFoundError:
-        st.error("Error: Model or scaler file not found.")
-        st.stop()
-    except Exception as e:
-        st.error(f"Error loading model or scaler: {e}")
-        st.stop()
-
-model, scaler = load_model_and_scaler()
+# --- Load Model and Scaler ---
+model = joblib.load("best_lgbm_clf_model.joblib")
+scaler = joblib.load("scaler.joblib")
 
 # --- Feature columns (must match training) ---
 feature_columns = [
@@ -32,122 +20,83 @@ feature_columns = [
     'type_CASH_OUT', 'type_DEBIT', 'type_PAYMENT', 'type_TRANSFER'
 ]
 
-st.title("💸 Real-Time Fraud Detection System")
-st.markdown("Enter transaction details to predict if it's fraudulent.")
-st.header("Transaction Details")
+# --- Required features for batch prediction (must match training) ---
+required_features = [
+    'step', 'amount', 'oldbalanceOrg', 'newbalanceOrig',
+    'oldbalanceDest', 'newbalanceDest',
+    'balanceDiffOrg', 'balanceDiffDest',
+    'type_CASH_OUT', 'type_DEBIT', 'type_PAYMENT', 'type_TRANSFER'
+]
 
-# --- Input UI ---
-col1, col2 = st.columns(2)
-with col1:
-    step = st.number_input("Step (hour)", min_value=1, value=1, key="step")
-    amount = st.number_input("Amount", min_value=0.0, value=1000.0, format="%.2f", key="amount")
-    oldbalanceOrg = st.number_input("Old Balance Originator", min_value=0.0, value=10000.0, format="%.2f", key="obo")
-    newbalanceOrig = st.number_input("New Balance Originator", min_value=0.0, value=9000.0, format="%.2f", key="nbo")
-    oldbalanceDest = st.number_input("Old Balance Destination", min_value=0.0, value=500.0, format="%.2f", key="obd")
-    newbalanceDest = st.number_input("New Balance Destination", min_value=0.0, value=1500.0, format="%.2f", key="nbd")
+# --- Title ---
+st.title("💳 Fraud Detection System")
 
-with col2:
-    transaction_type = st.selectbox(
-        "Transaction Type",
-        ('CASH_IN', 'CASH_OUT', 'DEBIT', 'PAYMENT', 'TRANSFER'),
-        key="type"
-    )
-    st.markdown("*(Note: We use derived features instead of anonymized V1–V28.)*")
+# --- Choose mode ---
+mode = st.sidebar.radio("Choose Input Mode", ["Single Prediction", "Batch Prediction (CSV Upload)"])
 
-# --- Predict Button ---
-if st.button("Predict Fraud"):
-    # Create input dataframe
-    input_df = pd.DataFrame(0, index=[0], columns=feature_columns)
-    input_df['step'] = step
-    input_df['amount'] = amount
-    input_df['oldbalanceOrg'] = oldbalanceOrg
-    input_df['newbalanceOrig'] = newbalanceOrig
-    input_df['oldbalanceDest'] = oldbalanceDest
-    input_df['newbalanceDest'] = newbalanceDest
-    input_df['balanceDiffOrg'] = oldbalanceOrg - newbalanceOrig
-    input_df['balanceDiffDest'] = newbalanceDest - oldbalanceDest
+if mode == "Single Prediction":
+    st.header("🧾 Enter Transaction Details")
 
-    # One-hot encode transaction type
-    input_df['type_CASH_OUT'] = transaction_type == 'CASH_OUT'
-    input_df['type_DEBIT'] = transaction_type == 'DEBIT'
-    input_df['type_PAYMENT'] = transaction_type == 'PAYMENT'
-    input_df['type_TRANSFER'] = transaction_type == 'TRANSFER'
-    # CASH_IN is baseline, no column set
+    step = st.number_input("Step (Time)", min_value=1, max_value=1000, value=1)
+    amount = st.number_input("Transaction Amount", min_value=0.0, value=100.0)
+    oldbalanceOrg = st.number_input("Original Balance (Sender)", min_value=0.0, value=1000.0)
+    newbalanceOrig = st.number_input("New Balance (Sender)", min_value=0.0, value=900.0)
+    oldbalanceDest = st.number_input("Original Balance (Receiver)", min_value=0.0, value=0.0)
+    newbalanceDest = st.number_input("New Balance (Receiver)", min_value=0.0, value=100.0)
 
-    # Match training feature order
-    input_data_processed = input_df[feature_columns]
+    transaction_type = st.selectbox("Transaction Type", ["CASH_OUT", "DEBIT", "PAYMENT", "TRANSFER"])
 
-    # Scale input
-    scaled_array = scaler.transform(input_data_processed)
-    scaled_df = pd.DataFrame(scaled_array, columns=feature_columns)
+    # Manual one-hot encoding
+    type_CASH_OUT = 1 if transaction_type == "CASH_OUT" else 0
+    type_DEBIT = 1 if transaction_type == "DEBIT" else 0
+    type_PAYMENT = 1 if transaction_type == "PAYMENT" else 0
+    type_TRANSFER = 1 if transaction_type == "TRANSFER" else 0
 
-    # Predict
-    prediction_proba = model.predict_proba(scaled_df)[:, 1][0]
-    prediction_label = model.predict(scaled_df)[0]
+    balanceDiffOrg = oldbalanceOrg - newbalanceOrig
+    balanceDiffDest = newbalanceDest - oldbalanceDest
 
-    st.subheader("Prediction Result:")
-    if prediction_label == 1:
-        st.error("🔴 FRAUDULENT TRANSACTION DETECTED!")
+    input_data = pd.DataFrame([[
+        step, amount, oldbalanceOrg, newbalanceOrig,
+        oldbalanceDest, newbalanceDest,
+        balanceDiffOrg, balanceDiffDest,
+        type_CASH_OUT, type_DEBIT, type_PAYMENT, type_TRANSFER
+    ]], columns=feature_columns)
+
+    input_scaled = scaler.transform(input_data)
+    prediction = model.predict(input_scaled)[0]
+    probability = model.predict_proba(input_scaled)[0][1]
+
+    st.subheader("Prediction")
+    if prediction == 1:
+        st.error(f"⚠️ This transaction is predicted to be FRAUDULENT with probability {probability:.2f}")
     else:
-        st.success("🟢 LEGITIMATE TRANSACTION.")
+        st.success(f"✅ This transaction is predicted to be LEGITIMATE with probability {1 - probability:.2f}")
 
-    st.write(f"**Fraud Probability:** `{prediction_proba:.4f}`")
+    st.markdown("#### 🔎 SHAP Explanation")
+    shap.initjs()
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(input_scaled)
+    shap.plots._waterfall.waterfall_legacy(explainer.expected_value[1], shap_values[1][0], feature_names=feature_columns)
+    st.pyplot(bbox_inches='tight')
 
-    # SHAP Explanation using Waterfall Plot
-    st.subheader("Why this prediction? (Feature Contributions)")
-    explainer = shap.Explainer(model)
-    shap_values = explainer(scaled_df)
+elif mode == "Batch Prediction (CSV Upload)":
+    st.header("📁 Upload Transactions CSV")
 
-    # Clear previous matplotlib figures
-    plt.clf()
+    uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 
-    shap.plots.waterfall(shap_values[0], show=False)
-    fig = plt.gcf()
-    st.pyplot(fig)
+    if uploaded_file is not None:
+        data = pd.read_csv(uploaded_file)
 
-
-    st.info("💡 Red pushes the prediction toward fraud; blue pushes toward legitimate.")
-
-
-    # ----------------------------- Batch Prediction Section -----------------------------
-st.divider()
-st.subheader("🔄 Batch Fraud Prediction (Upload CSV)")
-
-uploaded_file = st.file_uploader("Upload a CSV file with the same features used during training", type=["csv"])
-
-if uploaded_file is not None:
-    try:
-        # Read CSV
-        batch_df = pd.read_csv(uploaded_file)
-        st.success("✅ File uploaded successfully!")
-        st.write("Preview of uploaded data:")
-        st.dataframe(batch_df.head())
-
-        # Check for required columns
-        missing_cols = [col for col in required_features if col not in batch_df.columns]
+        missing_cols = [col for col in required_features if col not in data.columns]
         if missing_cols:
-            st.error(f"❌ Missing required columns: {missing_cols}")
+            st.error(f"The following required columns are missing: {missing_cols}")
         else:
-            # Preprocessing
-            batch_scaled = scaler.transform(batch_df[required_features])
-            batch_scaled_df = pd.DataFrame(batch_scaled, columns=required_features)
+            input_scaled = scaler.transform(data[required_features])
+            preds = model.predict(input_scaled)
+            data["is_fraud_predicted"] = preds
 
-            # Predict
-            batch_preds = model.predict(batch_scaled_df)
-            batch_df["fraud_prediction"] = batch_preds
+            st.success("✅ Predictions completed")
+            st.dataframe(data.head())
 
-            # Show results
-            st.write("✅ Predictions:")
-            st.dataframe(batch_df[["fraud_prediction"]].head(10))
-
-            # Download button
-            csv_output = batch_df.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="📥 Download Predictions as CSV",
-                data=csv_output,
-                file_name="fraud_predictions.csv",
-                mime="text/csv"
-            )
-    except Exception as e:
-        st.error(f"Something went wrong: {e}")
-
+            csv_download = data.to_csv(index=False).encode("utf-8")
+            st.download_button("📥 Download Results CSV", data=csv_download, file_name="fraud_predictions.csv", mime="text/csv")
