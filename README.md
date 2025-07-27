@@ -12,17 +12,24 @@
 ## Table of Contents
 - [1. Project Overview](#1-project-overview)
 - [2. Business Problem & Impact](#2-business-problem--impact)
-- [3. Dataset](#3-dataset)
+- [3. Dataset Information](#3-dataset-information)
 - [4. Methodology](#4-methodology)
 - [5. Model Performance](#5-model-performance)
 - [6. Model Interpretability (XAI)](#6-model-interpretability-xai)
 - [7. MLOps & Scalability Considerations](#7-mlops--scalability-considerations)
 - [8. How to Run Locally](#8-how-to-run-locally)
-- [9. Live Demo](#9-live-demo)
-- [10. Future Work](#10-future-work)
+- [9. Model Confidence Logic](#9-model-confidence-logic)
+- [10. SHAP Sample Output](#10-shap-sample-output)
+- [11. Screenshot](#11-screenshot)
+- [12. Future Work](#12-future-work)
+- [13. Folder Structure](#13-folder-structure)
+- [14. License](#14-license)
+- [15. Acknowledgements](#15-acknowledgements)
+- [16. Live Demo](#16-live-demo)
+- [17. Questions?](#17-questions)
 
 
-## 📌 1. Project Overview
+## 1. Project Overview
 
 This project focuses on detecting fraudulent financial transactions using a LightGBM classifier trained on a highly imbalanced real-world dataset. The Streamlit web app allows:
 
@@ -36,7 +43,7 @@ The model is trained on a Kaggle dataset with over **6 million transactions** an
 
 ---
 
-## 📊 2. Problem Statement
+## 2. Business Problem & Impact
 
 Banking and payment apps face massive losses due to fraudulent activities. Detecting fraud in real-time is critical, especially given:
 
@@ -46,7 +53,7 @@ Banking and payment apps face massive losses due to fraudulent activities. Detec
 
 ---
 
-## 🧠 3. Dataset Information
+## 3. Dataset Information
 
 - **Source**: [Kaggle: Fraud Detection Dataset](https://www.kaggle.com/datasets/amanalisiddiqui/fraud-detection-dataset)
 - **Records**: ~6 million transactions
@@ -57,7 +64,7 @@ Banking and payment apps face massive losses due to fraudulent activities. Detec
 
 ---
 
-## 🔧 4. Model Details
+## 4. Model Details
 
 - Algorithm: **LightGBM Classifier**
 - Feature Scaling: `StandardScaler`
@@ -67,7 +74,7 @@ Banking and payment apps face massive losses due to fraudulent activities. Detec
 
 ---
 
-## 📈 5. Model Performance
+## 5. Model Performance
 
 | Metric       | Value    |
 |--------------|----------|
@@ -81,7 +88,7 @@ These values reflect the model’s ability to detect fraud without missing true 
 
 ---
 
-## 🧠 6. Explainability (SHAP)
+## 6. Model Interpretability (XAI)
 
 Every prediction includes a **SHAP Waterfall Plot** explaining:
 
@@ -93,7 +100,7 @@ This makes the system **transparent and trustworthy**.
 
 ---
 
-## 🧪 7. MLOps and Streamlit UI
+## 7. MLOps & Scalability Considerations
 
 - Streamlit app with **two tabs**:
   - **Predict**: Enter data manually or use presets
@@ -107,7 +114,7 @@ This makes the system **transparent and trustworthy**.
 
 ---
 
-## 💻 8. How to Run Locally
+## 8. How to Run Locally
 
 1. Clone the repository  
    `git clone https://github.com/grimm-ak/fraud_detection_project.git`
@@ -124,7 +131,7 @@ This makes the system **transparent and trustworthy**.
 
 ---
 
-## 🧠 9. Model Confidence Logic
+## 9. Model Confidence Logic
 
 | Confidence Score | Interpretation        |
 |------------------|-----------------------|
@@ -137,7 +144,7 @@ The app uses this logic to provide **warnings** or **assurance** about the predi
 ---
 
 
-## 🔍 10. SHAP Sample Output
+## 10. SHAP Sample Output
 
 Here’s what the SHAP Waterfall Plot explains for each transaction:
 
@@ -149,13 +156,13 @@ This plot breaks down the model’s fraud prediction for a specific transaction.
 
 
 
-## 📸 11. Screenshot
+## 11. Screenshot
 
 ![App Screenshot](screenshots/app_preview.png)
 
 *Note: Replace with your actual screenshot path.*
 
-## 🚀 12. Future Work
+## 12. Future Work
 
 - Add Docker support
 - Add database logging of suspicious predictions
@@ -163,7 +170,7 @@ This plot breaks down the model’s fraud prediction for a specific transaction.
 - Deploy on GCP/AWS for enterprise integration
 
 
-## 📂 13. Folder Structure
+## 13. Folder Structure
 
 fraud_detection_project/  #  main project repository folder
 ├── .github/              # GitHub-specific configurations ( Workflows for automated pings)
@@ -180,24 +187,24 @@ fraud_detection_project/  #  main project repository folder
 └── screenshots/          # Folder for project screenshots to embed in README.md
     └── app_preview.png   # Screenshot of the deployed Streamlit app
 
-## 📄 14. License
+## 14. License
 
 This project is open-source and available under the **MIT License**.
 
 ---
 
-## 🙌 Acknowledgements
+## 15. Acknowledgements
 
 - [Kaggle Fraud Dataset](https://www.kaggle.com/datasets/amanalisiddiqui/fraud-detection-dataset)
 - [SHAP (SHapley Additive exPlanations)](https://github.com/slundberg/shap)
 - [Streamlit.io](https://streamlit.io)
 
-## 🔗 Live Demo
+## 16. Live Demo
 
 🌐 [Live App on Streamlit Cloud](https://frauddetectionproject-o2sgpzkvmz8ac6edt54h8a.streamlit.app/)
 
 ---
 
-## 💬 Questions?
+## 17. Questions?
 
 Feel free to open an issue or drop a comment in the repo. Happy to help!
