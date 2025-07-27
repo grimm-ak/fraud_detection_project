@@ -20,13 +20,8 @@ feature_columns = [
     'type_CASH_OUT', 'type_DEBIT', 'type_PAYMENT', 'type_TRANSFER'
 ]
 
-# --- Required features for batch prediction (must match training) ---
-required_features = [
-    'step', 'amount', 'oldbalanceOrg', 'newbalanceOrig',
-    'oldbalanceDest', 'newbalanceDest',
-    'balanceDiffOrg', 'balanceDiffDest',
-    'type_CASH_OUT', 'type_DEBIT', 'type_PAYMENT', 'type_TRANSFER'
-]
+# --- Required features for batch prediction ---
+required_features = feature_columns.copy()
 
 # --- Title ---
 st.title("💳 Fraud Detection System")
@@ -47,10 +42,10 @@ if mode == "Single Prediction":
     transaction_type = st.selectbox("Transaction Type", ["CASH_OUT", "DEBIT", "PAYMENT", "TRANSFER"])
 
     # Manual one-hot encoding
-    type_CASH_OUT = 1 if transaction_type == "CASH_OUT" else 0
-    type_DEBIT = 1 if transaction_type == "DEBIT" else 0
-    type_PAYMENT = 1 if transaction_type == "PAYMENT" else 0
-    type_TRANSFER = 1 if transaction_type == "TRANSFER" else 0
+    type_CASH_OUT = int(transaction_type == "CASH_OUT")
+    type_DEBIT = int(transaction_type == "DEBIT")
+    type_PAYMENT = int(transaction_type == "PAYMENT")
+    type_TRANSFER = int(transaction_type == "TRANSFER")
 
     balanceDiffOrg = oldbalanceOrg - newbalanceOrig
     balanceDiffDest = newbalanceDest - oldbalanceDest
@@ -72,12 +67,19 @@ if mode == "Single Prediction":
     else:
         st.success(f"✅ This transaction is predicted to be LEGITIMATE with probability {1 - probability:.2f}")
 
-    st.markdown("#### 🔎 SHAP Explanation")
-    shap.initjs()
-    explainer = shap.TreeExplainer(model)
-    shap_values = explainer.shap_values(input_scaled)
-    shap.plots._waterfall.waterfall_legacy(explainer.expected_value[1], shap_values[1][0], feature_names=feature_columns)
-    st.pyplot(bbox_inches='tight')
+    # SHAP Explanation
+    try:
+        explainer = shap.TreeExplainer(model)
+        shap_values = explainer.shap_values(input_scaled)
+        st.markdown("#### 🔎 SHAP Explanation (Waterfall Plot)")
+        shap.plots._waterfall.waterfall_legacy(
+            explainer.expected_value[1],
+            shap_values[1][0],
+            feature_names=feature_columns
+        )
+        st.pyplot(bbox_inches="tight")
+    except Exception as e:
+        st.warning(f"⚠️ SHAP explanation could not be displayed: {e}")
 
 elif mode == "Batch Prediction (CSV Upload)":
     st.header("📁 Upload Transactions CSV")
