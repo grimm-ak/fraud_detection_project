@@ -51,22 +51,53 @@ with st.expander("ℹ️ Show Model Info / Security Notes"):
     - **SHAP waterfall** explains key features influencing the decision  
     """)
 
-# --- Preset Options ---
-presets = {
-    "🔘 None (Manual Entry)": {},
-    "✅ Legitimate Transfer": {
-        "step": 50, "amount": 500.0, "oldbalanceOrg": 6000.0, "newbalanceOrig": 5500.0,
-        "oldbalanceDest": 1000.0, "newbalanceDest": 1500.0, "transaction_type": "TRANSFER"
-    },
-    "⚠️ Suspicious High-Value Cash Out": {
-        "step": 120, "amount": 9000.0, "oldbalanceOrg": 10000.0, "newbalanceOrig": 1000.0,
-        "oldbalanceDest": 500.0, "newbalanceDest": 9500.0, "transaction_type": "CASH_OUT"
-    },
-    "🔍 Edge Case - Low Balance, High Movement": {
-        "step": 200, "amount": 4500.0, "oldbalanceOrg": 500.0, "newbalanceOrig": 0.0,
-        "oldbalanceDest": 0.0, "newbalanceDest": 4500.0, "transaction_type": "DEBIT"
+st.subheader("🎯 Quick Presets")
+
+preset_col1, preset_col2, preset_col3 = st.columns(3)
+
+if preset_col1.button("🔄 Legitimate Transfer"):
+    st.session_state['preset'] = {
+        'step': 200,
+        'amount': 750.00,
+        'oldbalanceOrg': 5000.0,
+        'newbalanceOrig': 4250.0,
+        'oldbalanceDest': 3000.0,
+        'newbalanceDest': 3750.0,
+        'transaction_type': 'TRANSFER'
     }
-}
+
+if preset_col2.button("🏧 High-Value Cash Out (Suspicious)"):
+    st.session_state['preset'] = {
+        'step': 120,
+        'amount': 9800.00,
+        'oldbalanceOrg': 10000.0,
+        'newbalanceOrig': 200.0,
+        'oldbalanceDest': 0.0,
+        'newbalanceDest': 9800.0,
+        'transaction_type': 'CASH_OUT'
+    }
+
+if preset_col3.button("📥 Typical Payment"):
+    st.session_state['preset'] = {
+        'step': 320,
+        'amount': 120.00,
+        'oldbalanceOrg': 2000.0,
+        'newbalanceOrig': 1880.0,
+        'oldbalanceDest': 1000.0,
+        'newbalanceDest': 1120.0,
+        'transaction_type': 'PAYMENT'
+    }
+
+# --- Set default or preset values ---
+preset = st.session_state.get('preset', {})
+
+step = preset.get('step', 1)
+amount = preset.get('amount', 1000.0)
+oldbalanceOrg = preset.get('oldbalanceOrg', 10000.0)
+newbalanceOrig = preset.get('newbalanceOrig', 9000.0)
+oldbalanceDest = preset.get('oldbalanceDest', 500.0)
+newbalanceDest = preset.get('newbalanceDest', 1500.0)
+transaction_type = preset.get('transaction_type', 'CASH_IN')
 
 # --- Tabs Layout ---
 tab1, tab2 = st.tabs(["🚨 Predict Fraud", "📈 Feature Impact Stats"])
