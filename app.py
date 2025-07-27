@@ -100,10 +100,10 @@ with tab1:
         st.subheader("📢 Prediction Result")
         if prediction == 1:
             st.error("🔴 FRAUDULENT TRANSACTION DETECTED!")
-            st.markdown(f"🧠 **Model Confidence:** `{proba:.4f}`")
+            st.markdown(f"🧠 **Model Confidence:** `{proba * 100:.2f}%`")
         else:
             st.success("🟢 LEGITIMATE TRANSACTION.")
-            st.markdown(f"🧠 **Model Confidence:** `{1 - proba:.4f}`")
+            st.markdown(f"🧠 **Model Confidence:** `{(1 - proba) * 100:.2f}%`")
 
         # --- SHAP Waterfall Plot ---
         with st.expander("🔍 Why this prediction? (SHAP Waterfall)", expanded=True):
