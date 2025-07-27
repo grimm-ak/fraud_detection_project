@@ -172,25 +172,23 @@ This plot breaks down the model’s fraud prediction for a specific transaction.
 
 
 ## 13. Folder Structure
-
 The project repository is organized to provide a clear and maintainable structure for development, deployment, and documentation.
 
-
-
+```text
 fraud_detection_project/
-├── .github/
+├── .github/                       # GitHub Actions workflows for automation (e.g., app uptime)
 │   └── workflows/
-│       └── ping.yml
-├── .streamlit/
-│   └── config.toml
-├── app.py
-├── best_lgbm_clf_model.joblib
-├── scaler.joblib
-├── requirements.txt
-├── Fraud_Detection_Notebook.ipynb
-├── README.md
-└── screenshots/
-└── app_preview.png
+│       └── ping.yml               # Workflow to keep the Streamlit app awake
+├── .streamlit/                    # Streamlit-specific configuration files
+│   └── config.toml                # Streamlit app settings (e.g., file watcher settings)
+├── app.py                         # The main Streamlit web application script for prediction
+├── best_lgbm_clf_model.joblib     # Pre-trained LightGBM classification model
+├── scaler.joblib                  # Fitted StandardScaler for preprocessing new inputs
+├── requirements.txt               # Python dependencies required for the Streamlit app
+├── Fraud_Detection_Notebook.ipynb # Jupyter Notebook containing the full ML pipeline (EDA, training, evaluation, SHAP)
+├── README.md                      # Project documentation and overview (this file)
+└── screenshots/                   # Folder to store images/screenshots used in README.md
+    └── app_preview.png            # Screenshot of the deployed Streamlit app
 
 ## 14. License
 
