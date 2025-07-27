@@ -96,14 +96,22 @@ with tab1:
         prediction = model.predict(scaled_df)[0]
         proba = model.predict_proba(scaled_df)[0][1]
 
+        # --- Human-Readable Confidence ---
+        if proba >= 0.9:
+            confidence_level = "High"
+        elif proba >= 0.6:
+            confidence_level = "Medium"
+        else:
+            confidence_level = "Low"
+
         # --- Result Section ---
         st.subheader("📢 Prediction Result")
         if prediction == 1:
             st.error("🔴 FRAUDULENT TRANSACTION DETECTED!")
-            st.markdown(f"🧠 **Model Confidence:** `{proba:.4f}`")
+            st.markdown(f"🧠 **Model Confidence:** `{confidence_level}` (`{proba:.4f}`)")
         else:
             st.success("🟢 LEGITIMATE TRANSACTION.")
-            st.markdown(f"🧠 **Model Confidence:** `{1 - proba:.4f}`")
+            st.markdown(f"🧠 **Model Confidence:** `{confidence_level}` (`{1 - proba:.4f}`)")
 
         # --- SHAP Waterfall Plot ---
         with st.expander("🔍 Why this prediction? (SHAP Waterfall)", expanded=True):
