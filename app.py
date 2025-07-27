@@ -26,8 +26,8 @@ model, scaler = load_model_and_scaler()
 
 # ✅ SHAP Explainer Cache
 @st.cache_resource
-def get_shap_explainer(model):
-    return shap.Explainer(model)
+def get_shap_explainer(_model):
+    return shap.Explainer(_model)
 
 explainer = get_shap_explainer(model)
 
