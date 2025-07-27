@@ -1,4 +1,3 @@
-# Add this below the imports (after other imports)
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -51,12 +50,9 @@ with st.expander("ℹ️ Show Model Info / Security Notes"):
     - **SHAP waterfall** explains key features influencing the decision  
     """)
 
-st.subheader("🎯 Quick Presets")
-
-preset_col1, preset_col2, preset_col3 = st.columns(3)
-
-if preset_col1.button("🔄 Legitimate Transfer"):
-    st.session_state['preset'] = {
+# --- Presets ---
+presets = {
+    "🔄 Legitimate Transfer": {
         'step': 200,
         'amount': 750.00,
         'oldbalanceOrg': 5000.0,
@@ -64,10 +60,8 @@ if preset_col1.button("🔄 Legitimate Transfer"):
         'oldbalanceDest': 3000.0,
         'newbalanceDest': 3750.0,
         'transaction_type': 'TRANSFER'
-    }
-
-if preset_col2.button("🏧 High-Value Cash Out (Suspicious)"):
-    st.session_state['preset'] = {
+    },
+    "🏧 High-Value Cash Out (Suspicious)": {
         'step': 120,
         'amount': 9800.00,
         'oldbalanceOrg': 10000.0,
@@ -75,10 +69,8 @@ if preset_col2.button("🏧 High-Value Cash Out (Suspicious)"):
         'oldbalanceDest': 0.0,
         'newbalanceDest': 9800.0,
         'transaction_type': 'CASH_OUT'
-    }
-
-if preset_col3.button("📥 Typical Payment"):
-    st.session_state['preset'] = {
+    },
+    "📥 Typical Payment": {
         'step': 320,
         'amount': 120.00,
         'oldbalanceOrg': 2000.0,
@@ -87,17 +79,7 @@ if preset_col3.button("📥 Typical Payment"):
         'newbalanceDest': 1120.0,
         'transaction_type': 'PAYMENT'
     }
-
-# --- Set default or preset values ---
-preset = st.session_state.get('preset', {})
-
-step = preset.get('step', 1)
-amount = preset.get('amount', 1000.0)
-oldbalanceOrg = preset.get('oldbalanceOrg', 10000.0)
-newbalanceOrig = preset.get('newbalanceOrig', 9000.0)
-oldbalanceDest = preset.get('oldbalanceDest', 500.0)
-newbalanceDest = preset.get('newbalanceDest', 1500.0)
-transaction_type = preset.get('transaction_type', 'CASH_IN')
+}
 
 # --- Tabs Layout ---
 tab1, tab2 = st.tabs(["🚨 Predict Fraud", "📈 Feature Impact Stats"])
@@ -164,6 +146,7 @@ with tab1:
             st.success("🟢 **LEGITIMATE TRANSACTION.**")
 
         st.markdown(f"**🧠 Model Confidence:** {confidence_label} (`{confidence * 100:.2f}%`)")
+
         if "Low" in confidence_label:
             st.warning("⚠️ The model is unsure. Please verify this result manually.")
 
