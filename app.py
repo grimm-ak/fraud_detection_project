@@ -1,30 +1,60 @@
 import streamlit as st
-import numpy as np
 import pandas as pd
+import numpy as np
 import joblib
 import shap
 import matplotlib.pyplot as plt
 
-# Load saved model and scaler
-model = joblib.load('best_lgbm_clf_model.joblib')
-scaler = joblib.load('scaler.joblib')
+# --- Streamlit Page Configuration ---
+st.set_page_config(page_title="Fraud Detection System", layout="centered")
 
-# Define the required features (same order as during training)
-feature_columns = ['step', 'amount', 'oldbalanceOrg', 'newbalanceOrig',
-                   'diff_origin_balances', 'is_balance_zero', 'is_amount_high']
+# --- Load model and scaler ---
+@st.cache_resource
+def load_model_and_scaler():
+    try:
+        model = joblib.load('best_lgbm_clf_model.joblib')
+        scaler = joblib.load('scaler.joblib')
+        return model, scaler
+    except FileNotFoundError:
+        st.error("Error: Model or scaler file not found.")
+        st.stop()
+    except Exception as e:
+        st.error(f"Error loading model or scaler: {e}")
+        st.stop()
 
-# Streamlit UI
-st.set_page_config(page_title="Fraud Detection App", layout="centered")
-st.title("💳 Fraud Transaction Detection")
-st.markdown("Enter transaction details to check for potential fraud.")
+model, scaler = load_model_and_scaler()
 
-# Input fields
-step = st.number_input("Step (Time Step)", min_value=1, max_value=744, value=1)
-amount = st.number_input("Amount", min_value=0.0, step=1.0)
-oldbalanceOrg = st.number_input("Old Balance Origin", min_value=0.0, step=1.0)
-newbalanceOrig = st.number_input("New Balance Origin", min_value=0.0, step=1.0)
+# --- Feature columns (must match training) ---
+feature_columns = [
+    'step', 'amount', 'oldbalanceOrg', 'newbalanceOrig',
+    'oldbalanceDest', 'newbalanceDest',
+    'balanceDiffOrg', 'balanceDiffDest',
+    'type_CASH_OUT', 'type_DEBIT', 'type_PAYMENT', 'type_TRANSFER'
+]
 
-# Predict button
+st.title("💸 Real-Time Fraud Detection System")
+st.markdown("Enter transaction details to predict if it's fraudulent.")
+st.header("Transaction Details")
+
+# --- Input UI ---
+col1, col2 = st.columns(2)
+with col1:
+    step = st.number_input("Step (hour)", min_value=1, value=1, key="step")
+    amount = st.number_input("Amount", min_value=0.0, value=1000.0, format="%.2f", key="amount")
+    oldbalanceOrg = st.number_input("Old Balance Originator", min_value=0.0, value=10000.0, format="%.2f", key="obo")
+    newbalanceOrig = st.number_input("New Balance Originator", min_value=0.0, value=9000.0, format="%.2f", key="nbo")
+    oldbalanceDest = st.number_input("Old Balance Destination", min_value=0.0, value=500.0, format="%.2f", key="obd")
+    newbalanceDest = st.number_input("New Balance Destination", min_value=0.0, value=1500.0, format="%.2f", key="nbd")
+
+with col2:
+    transaction_type = st.selectbox(
+        "Transaction Type",
+        ('CASH_IN', 'CASH_OUT', 'DEBIT', 'PAYMENT', 'TRANSFER'),
+        key="type"
+    )
+    st.markdown("*(Note: We use derived features instead of anonymized V1–V28.)*")
+
+# --- Predict Button ---
 if st.button("Predict Fraud"):
     # Create input dataframe
     input_df = pd.DataFrame(0, index=[0], columns=feature_columns)
@@ -32,25 +62,48 @@ if st.button("Predict Fraud"):
     input_df['amount'] = amount
     input_df['oldbalanceOrg'] = oldbalanceOrg
     input_df['newbalanceOrig'] = newbalanceOrig
-    input_df['diff_origin_balances'] = oldbalanceOrg - newbalanceOrig
-    input_df['is_balance_zero'] = 1 if oldbalanceOrg == 0 and newbalanceOrig == 0 else 0
-    input_df['is_amount_high'] = 1 if amount > 200000 else 0
+    input_df['oldbalanceDest'] = oldbalanceDest
+    input_df['newbalanceDest'] = newbalanceDest
+    input_df['balanceDiffOrg'] = oldbalanceOrg - newbalanceOrig
+    input_df['balanceDiffDest'] = newbalanceDest - oldbalanceDest
 
-    # Scale features
-    scaled_input = scaler.transform(input_df)
+    # One-hot encode transaction type
+    input_df['type_CASH_OUT'] = transaction_type == 'CASH_OUT'
+    input_df['type_DEBIT'] = transaction_type == 'DEBIT'
+    input_df['type_PAYMENT'] = transaction_type == 'PAYMENT'
+    input_df['type_TRANSFER'] = transaction_type == 'TRANSFER'
+    # CASH_IN is baseline, no column set
+
+    # Match training feature order
+    input_data_processed = input_df[feature_columns]
+
+    # Scale input
+    scaled_array = scaler.transform(input_data_processed)
+    scaled_df = pd.DataFrame(scaled_array, columns=feature_columns)
 
     # Predict
-    prediction = model.predict(scaled_input)[0]
-    pred_label = "Fraud" if prediction == 1 else "Not Fraud"
-    st.subheader(f"🔍 Prediction: **{pred_label}**")
+    prediction_proba = model.predict_proba(scaled_df)[:, 1][0]
+    prediction_label = model.predict(scaled_df)[0]
 
-    # SHAP Explanation
-    st.markdown("#### 🔎 SHAP Explanation")
-    try:
-        explainer = shap.TreeExplainer(model)
-        shap_values = explainer(scaled_input)
-        shap.initjs()
-        shap.plots._waterfall.waterfall_legacy(explainer.expected_value[1], shap_values.values[0])
-        st.pyplot(bbox_inches='tight')
-    except Exception as e:
-        st.warning(f"⚠️ SHAP explanation could not be displayed: {e}")
+    st.subheader("Prediction Result:")
+    if prediction_label == 1:
+        st.error("🔴 FRAUDULENT TRANSACTION DETECTED!")
+    else:
+        st.success("🟢 LEGITIMATE TRANSACTION.")
+
+    st.write(f"**Fraud Probability:** `{prediction_proba:.4f}`")
+
+    # SHAP Explanation using Waterfall Plot
+    st.subheader("Why this prediction? (Feature Contributions)")
+    explainer = shap.Explainer(model)
+    shap_values = explainer(scaled_df)
+
+    # Clear previous matplotlib figures
+    plt.clf()
+
+    shap.plots.waterfall(shap_values[0], show=False)
+    fig = plt.gcf()
+    st.pyplot(fig)
+
+
+    st.info("💡 Red pushes the prediction toward fraud; blue pushes toward legitimate.")
