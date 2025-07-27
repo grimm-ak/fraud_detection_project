@@ -34,24 +34,24 @@ feature_columns = [
 st.title("💸 Real-Time Fraud Detection System")
 
 # --- Collapsible Info Section ---
-with st.expander("ℹ️ Click to Show/Hide Model Info, Security & UX"):
+with st.expander("ℹ️ Show Model Info / Security Notes"):
     st.markdown("""
-    ### 📌 Model Info  
-    - LightGBM classifier trained on 6M+ transactions  
-    - Uses derived balance features and one-hot encoded types  
-    - Calibrated using GridSearchCV with class balancing  
+    ### 🔍 Model Info  
+    - **LightGBM classifier** trained on 6M+ transactions  
+    - Includes derived balance features + one-hot encoded types  
+    - Calibrated with **GridSearchCV** and **class balancing**
 
-    ### 🔐 Security Note  
-    - All predictions happen locally  
-    - No transaction data is stored or sent externally  
+    ### 🔐 Privacy & Security  
+    - All processing is **local** to this session  
+    - **No data is stored or sent externally**
 
-    ### 🎯 User Experience  
-    - Instant predictions with clear visual explanation  
-    - SHAP waterfall plot shows **why** the model made its decision  
+    ### 🧠 UX Features  
+    - Fast predictions + visual reasoning  
+    - **SHAP waterfall** explains key features influencing the decision  
     """)
 
 # --- Tabs Layout ---
-tab1, tab2 = st.tabs(["🔍 Predict Fraud", "📈 Feature Impact Stats"])
+tab1, tab2 = st.tabs(["🚨 Predict Fraud", "📈 Feature Impact Stats"])
 
 with tab1:
     st.header("📝 Enter Transaction Details")
@@ -67,7 +67,7 @@ with tab1:
 
     with col2:
         transaction_type = st.selectbox("Transaction Type", ['CASH_IN', 'CASH_OUT', 'DEBIT', 'PAYMENT', 'TRANSFER'])
-        st.markdown("*(Derived features used instead of V1–V28 anonymized ones)*")
+        st.caption("*(Derived features used instead of anonymized V1–V28)*")
 
     st.markdown("---")
 
@@ -97,35 +97,37 @@ with tab1:
         proba = model.predict_proba(scaled_df)[0][1]
 
         confidence = proba if prediction == 1 else (1 - proba)
-        confidence_label = "High Confidence" if confidence >= 0.90 else "Medium Confidence" if confidence >= 0.70 else "Low Confidence"
-        confidence_color = "🟢" if confidence_label == "High Confidence" else "🟡" if confidence_label == "Medium Confidence" else "🔴"
+        confidence_label = (
+            "🟢 High Confidence" if confidence >= 0.90 else
+            "🟡 Medium Confidence" if confidence >= 0.70 else
+            "🔴 Low Confidence"
+        )
 
-        # --- Result Section ---
+        # --- Result ---
         st.subheader("📢 Prediction Result")
         if prediction == 1:
-            st.error("🔴 FRAUDULENT TRANSACTION DETECTED!")
+            st.error("🔴 **FRAUDULENT TRANSACTION DETECTED!**")
         else:
-            st.success("🟢 LEGITIMATE TRANSACTION.")
+            st.success("🟢 **LEGITIMATE TRANSACTION.**")
 
-        st.markdown(f"🧠 **Model Confidence:** {confidence_color} **{confidence_label}** (`{confidence * 100:.2f}%`)")
-        if confidence_label == "Low Confidence":
-            st.warning("⚠️ The model is unsure. Consider verifying this result manually.")
+        st.markdown(f"**🧠 Model Confidence:** {confidence_label} (`{confidence * 100:.2f}%`)")
+        if "Low" in confidence_label:
+            st.warning("⚠️ The model is unsure. Please verify this result manually.")
 
-        # --- SHAP Waterfall Plot ---
+        # --- SHAP Explanation ---
         with st.expander("🔍 Why this prediction? (SHAP Waterfall)", expanded=True):
             shap_values = explainer(scaled_df)
 
             plt.clf()
             shap.plots.waterfall(shap_values[0], show=False)
             st.pyplot(plt.gcf())
-            st.caption("Red pushes toward fraud | Blue pushes toward legit")
+            st.caption("🔹 Blue pushes toward Legit | 🔺 Red pushes toward Fraud")
 
-            # Store for Tab 2
             st.session_state['last_shap'] = shap_values[0]
             st.session_state['last_features'] = scaled_df.iloc[0]
 
 with tab2:
-    st.header("📈 Feature Impact on Prediction")
+    st.header("📊 Feature Impact Summary")
 
     if 'last_shap' in st.session_state:
         shap_values = st.session_state['last_shap'].values
@@ -137,7 +139,7 @@ with tab2:
             'SHAP Impact': shap_values
         }).sort_values(by='SHAP Impact', key=abs, ascending=False)
 
-        st.markdown("#### 🔍 Top 5 Key Features")
+        st.markdown("#### 🔍 Top 5 Influential Features")
         st.dataframe(feature_impact_df.head(5), use_container_width=True)
 
         most_positive = feature_impact_df.loc[feature_impact_df['SHAP Impact'].idxmax()]
@@ -146,4 +148,4 @@ with tab2:
         st.markdown(f"🟥 **Most Fraud-Inducing:** `{most_positive['Feature']}` → SHAP = `{most_positive['SHAP Impact']:.3f}`")
         st.markdown(f"🟦 **Most Fraud-Reducing:** `{most_negative['Feature']}` → SHAP = `{most_negative['SHAP Impact']:.3f}`")
     else:
-        st.info("⚠️ Make a prediction first to view feature impact.")
+        st.info("⚠️ Run a prediction to view feature impact insights.")
