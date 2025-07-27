@@ -36,22 +36,19 @@ st.title("💸 Real-Time Fraud Detection System")
 # --- Collapsible Info Section ---
 with st.expander("ℹ️ Click to Show/Hide Model Info, Security & UX"):
     st.markdown("""
-    ### ℹ️ Model Info  
+    ### 📌 Model Info  
     - LightGBM classifier trained on 6M+ transactions  
     - Uses derived balance features and one-hot encoded types  
     - Calibrated using GridSearchCV with class balancing  
 
-    ### 🔒 Security Note  
+    ### 🔐 Security Note  
     - All predictions happen locally  
     - No transaction data is stored or sent externally  
 
     ### 🎯 User Experience  
     - Instant predictions with clear visual explanation  
-    - Waterfall SHAP plot shows the **why** behind each decision  
+    - SHAP waterfall plot shows **why** the model made its decision  
     """)
-
-# --- Theme Info ---
-st.caption("🌓 Theme follows your system/browser setting. [Change Streamlit theme →](https://docs.streamlit.io/library/advanced-features/theming)")
 
 # --- Tabs Layout ---
 tab1, tab2 = st.tabs(["🔍 Predict Fraud", "📈 Feature Impact Stats"])
@@ -71,6 +68,8 @@ with tab1:
     with col2:
         transaction_type = st.selectbox("Transaction Type", ['CASH_IN', 'CASH_OUT', 'DEBIT', 'PAYMENT', 'TRANSFER'])
         st.markdown("*(Derived features used instead of V1–V28 anonymized ones)*")
+
+    st.markdown("---")
 
     if st.button("🚨 Predict Fraud", use_container_width=True):
         # --- Prepare Input ---
@@ -97,26 +96,27 @@ with tab1:
         prediction = model.predict(scaled_df)[0]
         proba = model.predict_proba(scaled_df)[0][1]
 
+        # --- Result Section ---
         st.subheader("📢 Prediction Result")
         if prediction == 1:
             st.error("🔴 FRAUDULENT TRANSACTION DETECTED!")
+            st.markdown(f"🧠 **Model Confidence:** `{proba:.4f}`")
         else:
             st.success("🟢 LEGITIMATE TRANSACTION.")
-
-        st.markdown(f"**Fraud Probability:** `{proba:.4f}`")
+            st.markdown(f"🧠 **Model Confidence:** `{1 - proba:.4f}`")
 
         # --- SHAP Waterfall Plot ---
-        st.subheader("🔍 SHAP Waterfall Explanation")
-        shap_values = explainer(scaled_df)
+        with st.expander("🔍 Why this prediction? (SHAP Waterfall)", expanded=True):
+            shap_values = explainer(scaled_df)
 
-        plt.clf()
-        shap.plots.waterfall(shap_values[0], show=False)
-        st.pyplot(plt.gcf())
-        st.info("Red features push toward fraud; blue toward legit.")
+            plt.clf()
+            shap.plots.waterfall(shap_values[0], show=False)
+            st.pyplot(plt.gcf())
+            st.caption("Red pushes toward fraud | Blue pushes toward legit")
 
-        # Store shap values in session for Tab 2
-        st.session_state['last_shap'] = shap_values[0]
-        st.session_state['last_features'] = scaled_df.iloc[0]
+            # Store for Tab 2
+            st.session_state['last_shap'] = shap_values[0]
+            st.session_state['last_features'] = scaled_df.iloc[0]
 
 with tab2:
     st.header("📈 Feature Impact on Prediction")
@@ -131,7 +131,7 @@ with tab2:
             'SHAP Impact': shap_values
         }).sort_values(by='SHAP Impact', key=abs, ascending=False)
 
-        st.markdown("Top 5 features driving the decision:")
+        st.markdown("#### 🔍 Top 5 Key Features")
         st.dataframe(feature_impact_df.head(5), use_container_width=True)
 
         most_positive = feature_impact_df.loc[feature_impact_df['SHAP Impact'].idxmax()]
