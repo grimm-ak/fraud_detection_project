@@ -150,7 +150,7 @@ Here’s what the SHAP Waterfall Plot explains for each transaction:
 
 This plot breaks down the model’s fraud prediction for a specific transaction. Each bar represents how much a feature pushed the prediction towards **fraud** (red) or **non-fraud** (blue). The base value (model’s average prediction) is adjusted feature-by-feature to reach the final fraud probability.
 
-![SHAP Waterfall Plot](images/shap_waterfall.png)
+![SHAP Waterfall Plot](images/shap-waterfall.png)
 
 
 
