@@ -178,17 +178,19 @@ The project repository is organized to provide a clear and maintainable structur
 fraud_detection_project/
 ├── .github/                       # GitHub Actions workflows for automation (e.g., app uptime)
 │   └── workflows/
-│       └── ping.yml               # Workflow to keep the Streamlit app awake
+│       └── ping.yml               # GitHub Actions workflow to keep the Streamlit app awake
 ├── .streamlit/                    # Streamlit-specific configuration files
 │   └── config.toml                # Streamlit app settings (e.g., file watcher settings)
 ├── app.py                         # The main Streamlit web application script for prediction
 ├── best_lgbm_clf_model.joblib     # Pre-trained LightGBM classification model
 ├── scaler.joblib                  # Fitted StandardScaler for preprocessing new inputs
 ├── requirements.txt               # Python dependencies required for the Streamlit app
-├── Fraud_Detection_Notebook.ipynb # Jupyter Notebook containing the full ML pipeline (EDA, training, evaluation, SHAP)
+├── NoteBook/                      # Folder for Jupyter Notebooks and detailed analysis
+│   └── Fraud_Detection_Notebook.ipynb # Your detailed Jupyter/Colab notebook with all code (EDA, training, SHAP)
 ├── README.md                      # Project documentation and overview (this file)
-└── screenshots/                   # Folder to store images/screenshots used in README.md
-    └── app_preview.png            # Screenshot of the deployed Streamlit app
+└── images/                        # Folder to store images/screenshots used in README.md
+    ├── screenshot.png             # Screenshot of the deployed Streamlit app
+    └── shap-waterfall.png         # Screenshot of the SHAP Waterfall plot
 
 ## 14. License
 
