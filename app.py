@@ -62,7 +62,7 @@ if 'type_idx' not in st.session_state:
 
 col1, col2 = st.columns(2)
 with col1:
-    step = st.number_input("Step (Time step in hours)", min_value=1, key="step_input", value=st.session_state.step_val)
+    step = st.number_input("Step (hour)", min_value=1, key="step_input", value=st.session_state.step_val)
     amount = st.number_input("Amount", min_value=0.0, format="%.2f", key="amount_input", value=st.session_state.amount_val)
     oldbalanceOrg = st.number_input("Old Balance Originator", min_value=0.0, format="%.2f", key="obo_input", value=st.session_state.obo_val)
     newbalanceOrig = st.number_input("New Balance Originator", min_value=0.0, format="%.2f", key="nbo_input", value=st.session_state.nbo_val)
@@ -88,13 +88,13 @@ def reset_inputs():
     st.session_state.obd_val = 500.0
     st.session_state.nbd_val = 1500.0
     st.session_state.type_idx = 0 # Reset to 'CASH_IN'
-    st.experimental_rerun() # Forces the app to rerun from top, clearing output
+    st.rerun() # <--- FIXED: Changed from st.experimental_rerun() to st.rerun()
 
 if st.button("Reset Inputs", on_click=reset_inputs):
     pass # Function handles the reset
 
 # --- Predict Button ---
-if st.button("Predict Fraud", key="predict_button"): # Added key to prevent conflict if two buttons have same label
+if st.button("Predict Fraud", key="predict_button"):
     # 1. Create input dataframe
     input_df = pd.DataFrame(0, index=[0], columns=feature_columns)
     
@@ -139,20 +139,18 @@ if st.button("Predict Fraud", key="predict_button"): # Added key to prevent conf
 
     st.subheader("Prediction Result:")
     if prediction_label == 1:
-        st.error("🔴 FRAUDULENT TRANSACTION DETECTED!")
+        st.error(f"🔴 FRAUDULENT TRANSACTION DETECTED!")
     else:
-        st.success("🟢 LEGITIMATE TRANSACTION.")
+        st.success(f"🟢 LEGITIMATE TRANSACTION.")
 
     st.write(f"**Fraud Probability:** `{prediction_proba:.4f}`")
 
     # --- Model Confidence Visual ---
     st.markdown("### Model Confidence:")
-    confidence_level = prediction_proba * 100 # Convert probability to percentage
+    confidence_level = prediction_proba * 100
     
-    # Create a progress bar
     st.progress(int(confidence_level))
     
-    # Add text interpretation
     if prediction_label == 1:
         st.write(f"Confidence in Fraud Detection: **{confidence_level:.2f}%**")
         st.markdown(f'<p style="color:red;font-weight:bold;">This prediction is likely to be FRAUD.</p>', unsafe_allow_html=True)
@@ -164,9 +162,9 @@ if st.button("Predict Fraud", key="predict_button"): # Added key to prevent conf
     # --- SHAP Explanation ---
     st.subheader("Why this prediction? (Feature Contributions)")
     
-    explainer = shap.TreeExplainer(model)
-    shap_values_raw_single = explainer.shap_values(scaled_df) # Use scaled_df here
-
+    explainer = shap.Explainer(model)
+    
+    shap_values_raw_single = explainer(scaled_df) # Use explainer(data) for newer SHAP
     if isinstance(shap_values_raw_single, list) and len(shap_values_raw_single) > 1:
         shap_values_for_plot_single = shap_values_raw_single[1]
         expected_value_for_plot_single = explainer.expected_value[1]
