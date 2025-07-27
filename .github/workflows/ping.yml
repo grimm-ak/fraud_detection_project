@@ -1,0 +1,16 @@
+name: Keep Streamlit App Awake
+
+on:
+  schedule:
+    # Runs every 3 hours (at minute 0 past every 3rd hour)
+    # Adjust '0 */3 * * *' as needed. For example, '0 */6 * * *' for every 6 hours.
+    # Learn more about cron syntax: https://crontab.guru/
+    - cron: '0 */3 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Streamlit App
+        run: curl -s "https://frauddetectionproject-o2sgpzkvmz8ac6edt54h8a.streamlit.app/" > /dev/null
