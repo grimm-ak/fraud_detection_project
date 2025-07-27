@@ -21,113 +21,183 @@
 - [9. Live Demo](#9-live-demo)
 - [10. Future Work](#10-future-work)
 
----
 
-### 1. Project Overview
-This project focuses on building and deploying a robust machine learning system for real-time fraud detection in financial transactions. It demonstrates an end-to-end data science workflow from data preprocessing and advanced model training to interpretability and considerations for production deployment.
+## 📌 1. Project Overview
 
-### 2. Business Problem & Impact
-Financial fraud is a significant challenge for banks and e-commerce platforms, leading to substantial financial losses and erosion of customer trust. This project aims to accurately identify fraudulent transactions, enabling organizations to:
-- **Minimize Financial Losses:** By detecting fraud quickly and effectively.
-- **Improve Customer Experience:** By reducing false positives (legitimate transactions flagged as fraud) and ensuring genuine transactions are processed smoothly.
-- **Enhance Security:** By strengthening the overall fraud prevention capabilities.
-- **Optimize Resource Allocation:** By focusing fraud investigation efforts on high-probability cases.
+This project focuses on detecting fraudulent financial transactions using a LightGBM classifier trained on a highly imbalanced real-world dataset. The Streamlit web app allows:
 
-### 3. Dataset
-The dataset used is the [**Fraud Detection Dataset by Aman Ali Siddiqui**](https://www.kaggle.com/datasets/amanalibox/fraud-detection-dataset) from Kaggle, containing anonymized financial transaction data.
-- **Size:** Approximately 6.3 million transactions.
-- **Key Features:** Includes transaction amount, time step, original and new account balances, and various anonymized features (V1-V28).
-- **Class Imbalance:** The dataset is highly imbalanced, with fraudulent transactions constituting only ~0.1% of the total, presenting a realistic challenge for model development.
-- **Download:** Due to its large size (over 100MB), the raw dataset is not hosted directly in this repository. Please download it from the [Kaggle dataset page](https://www.kaggle.com/datasets/amanalibox/fraud-detection-dataset).
+- ✅ Real-time fraud prediction
+- 🔍 SHAP-based model explanation for every prediction
+- 🧠 Model confidence display (High / Medium / Low)
+- ⚙️ Presets for fast testing
+- 🎨 Clean and intuitive 2-tab UI: Predict | Feature Impact
 
-### 4. Methodology
-The project follows a structured machine learning pipeline:
-1.  **Data Loading & Initial Exploration:** Loaded transactional data and performed initial checks on shape, columns, and basic statistics.
-2.  **Feature Engineering (Basic):**
-    - Created `balanceDiffOrg` (change in originating account balance) and `balanceDiffDest` (change in destination account balance) as derived features.
-    - Utilized existing numerical features (`step`, `amount`, `oldbalanceOrg`, `newbalanceOrig`, `oldbalanceDest`, `newbalanceDest`).
-    - Handled categorical `type` feature via One-Hot Encoding.
-3.  **Missing Value Imputation:** Missing numerical values were imputed using the median of their respective columns from the training data to ensure data completeness.
-4.  **Class Imbalance Handling:** To address the extreme class imbalance (approx. 965:1 non-fraud to fraud), `RandomUnderSampler` was applied to balance the dataset, ensuring the model learns effectively from both classes.
-5.  **Data Splitting:** Data was split into training and testing sets (e.g., 80/20 ratio), with stratification to maintain class balance in both sets.
-6.  **Feature Scaling:** Numerical features were scaled using `StandardScaler` to standardize their range, aiding model convergence and performance.
-7.  **Model Training (LightGBM with Hyperparameter Tuning):**
-    - A **LightGBM Classifier** was chosen for its high performance and efficiency with tabular data.
-    - **`GridSearchCV`** was employed for comprehensive hyperparameter tuning, optimizing parameters such as `n_estimators`, `learning_rate`, `num_leaves`, `max_depth`, `reg_alpha`, and `reg_lambda` to achieve the best `ROC_AUC` score.
-8.  **Model Evaluation:** Performance was rigorously evaluated on the unseen test set using key metrics for imbalanced classification.
-
-### 5. Model Performance
-The optimized LightGBM Classifier achieved outstanding performance on the balanced test set:
-- **Accuracy:** `[Your Test Set Accuracy, e.g., 0.9946]`
-- **Precision:** `[Your Test Set Precision, e.g., 0.9920]`
-- **Recall:** `[Your Test Set Recall, e.g., 0.9973]`
-- **F1-Score:** `[Your Test Set F1-Score, e.g., 0.9946]`
-- **ROC AUC:** `[Your Test Set ROC AUC, e.g., 0.9999]`
-
-This performance demonstrates the model's high capability in accurately identifying fraudulent transactions while minimizing false positives and false negatives.
-
-### 6. Model Interpretability (XAI)
-To provide transparency and build trust, **SHAP (SHapley Additive exPlanations)** was integrated to interpret the model's decisions:
-- **Global Feature Importance:** Visualizations (Bar and Beeswarm plots, which are generated in the accompanying Jupyter Notebook) illustrate which features contribute most to the model's overall fraud predictions.
-- **Individual Prediction Explanation:** An interactive [SHAP force plot](<You can include a static image of a sample force plot here, or simply describe its functionality, as it's interactive in the live demo.>) is generated in the live demo to explain *why* a specific transaction was flagged as fraudulent, detailing the contribution of each feature value.
-
-### 7. MLOps & Scalability Considerations
-This project is designed with production readiness in mind:
-- **Containerization:** The application is **containerized using Docker**, ensuring a consistent and isolated environment for deployment across various platforms.
-- **Deployment Strategy:** The Streamlit application (see [Live Demo](#9-live-demo) below) demonstrates real-time inference capability.
-    - *For live deployment, an automated pinging mechanism via GitHub Actions is implemented to prevent app inactivity shutdown on free tiers.*
-    - *For enterprise-grade deployment, the Dockerized application can be seamlessly deployed to cloud platforms such as **Google Cloud Run** or **AWS EC2**, leveraging their scalability and robust infrastructure.*
-- **Real-time Data Ingestion (Conceptual):** For truly real-time fraud detection at scale, data would be ingested via streaming platforms like **Apache Kafka** (e.g., from payment gateways), processed, and fed to the model.
-- **Model Monitoring (Conceptual):** In a production environment, continuous monitoring would be established for model performance, data drift, and concept drift, with alerts triggered for degradation.
-- **Model & Data Versioning (Conceptual):** Tools like MLflow for experiment tracking and DVC (Data Version Control) would be used to manage different versions of models and datasets, ensuring reproducibility and auditability.
-
-### 8. How to Run Locally
-To run this project on your local machine:
-1.  **Clone the repository:**
-    ```bash
-    git clone [https://github.com/grimm-ak/fraud_detection_project.git](https://github.com/grimm-ak/fraud_detection_project.git) # Replace with your actual repo URL
-    cd fraud_detection_project
-    ```
-2.  **Download Dataset:** Download `AIML Dataset.csv` from Kaggle ([https://www.kaggle.com/datasets/amanalibox/fraud-detection-dataset](https://www.kaggle.com/datasets/amanalibox/fraud-detection-dataset)) and place it in a `data/` directory (create this folder if it doesn't exist within your cloned repository).
-3.  **Create a virtual environment (recommended):**
-    ```bash
-    python -m venv venv
-    source venv/bin/activate  # On Windows: `venv\Scripts\activate`
-    ```
-4.  **Install dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-5.  **Run the Jupyter Notebook:**
-    ```bash
-    jupyter notebook Fraud_Detection_Notebook.ipynb # Replace with your actual notebook name
-    ```
-    *(Run all cells in the notebook to ensure model and scaler are saved to .joblib files.)*
-6.  **Run the Streamlit App:**
-    ```bash
-    streamlit run app.py
-    ```
-
-### 9. Live Demo
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](YOUR_ACTUAL_STREAMLIT_CLOUD_URL_HERE)
-*(**CRITICAL:** Replace `YOUR_ACTUAL_STREAMLIT_CLOUD_URL_HERE` with the actual URL of your deployed Streamlit app. This is the link recruiters will click!)*
-
-### 10. Future Work
-- Explore more advanced feature engineering techniques (e.g., transaction velocity, spending habits over time, graph-based features if data allows).
-- Implement more sophisticated sampling methods (e.g., SMOTE, ADASYN) or cost-sensitive learning.
-- Experiment with other ensemble models (CatBoost) or Deep Learning models (e.g., Autoencoders for anomaly detection).
-- Full MLOps pipeline integration with CI/CD for continuous model deployment and retraining.
-- Enhance the user interface with more interactive elements or visual feedback.
+The model is trained on a Kaggle dataset with over **6 million transactions** and balances precision/recall for fraud detection.
 
 ---
 
-**Your Tasks:**
+## 📊 2. Problem Statement
 
-1.  **Copy and paste this entire template** into your `README.md` file.
-2.  **Fill in all the placeholders** with your specific metrics and URLs.
-    * `[Your Test Set Accuracy, Precision, Recall, F1-Score, ROC AUC]`
-    * `YOUR_ACTUAL_STREAMLIT_CLOUD_URL_HERE`
-    * `https://github.com/grimm-ak/fraud_detection_project.git` (confirm your exact repo URL)
-    * `Fraud_Detection_Notebook.ipynb` (confirm your actual notebook name)
-3.  **Save the `README.md` file.**
-4.  **Commit and push the `README.md` to your GitHub repository.**
+Banking and payment apps face massive losses due to fraudulent activities. Detecting fraud in real-time is critical, especially given:
+
+- ⚠️ Only ~0.1% of all transactions are fraudulent.
+- 🧾 Legitimate transactions often resemble fraud.
+- 🧠 Models must balance false positives vs. false negatives carefully.
+
+---
+
+## 🧠 3. Dataset Information
+
+- **Source**: [Kaggle: Fraud Detection Dataset](https://www.kaggle.com/datasets/amanalisiddiqui/fraud-detection-dataset)
+- **Records**: ~6 million transactions
+- **Features Used**:
+  - `step`, `amount`, `oldbalanceOrg`, `newbalanceOrig`
+  - `oldbalanceDest`, `newbalanceDest`, `transaction_type`
+- **Target**: `isFraud`
+
+---
+
+## 🔧 4. Model Details
+
+- Algorithm: **LightGBM Classifier**
+- Feature Scaling: `StandardScaler`
+- Class Imbalance Handling: `class_weight='balanced'`
+- Hyperparameter Tuning: `GridSearchCV`
+- Feature Explanation: `SHAP`
+
+---
+
+## 📈 5. Model Performance
+
+| Metric       | Value    |
+|--------------|----------|
+| Accuracy     | 91.67%   |
+| Precision    | 85.71%   |
+| Recall       | 100.00%  |
+| F1-Score     | 92.31%   |
+| ROC AUC      | 98.78%   |
+
+These values reflect the model’s ability to detect fraud without missing true positives (Recall = 1.0).
+
+---
+
+## 🧠 6. Explainability (SHAP)
+
+Every prediction includes a **SHAP Waterfall Plot** explaining:
+
+- How each feature contributed to the prediction
+- Whether the feature pushed the result toward fraud or legitimate
+- The relative importance of features like `amount`, `oldbalanceOrg`, etc.
+
+This makes the system **transparent and trustworthy**.
+
+---
+
+## 🧪 7. MLOps and Streamlit UI
+
+- Streamlit app with **two tabs**:
+  - **Predict**: Enter data manually or use presets
+  - **Feature Impact**: View SHAP explanations
+- **Model confidence** (Low, Medium, High) based on predicted probability
+- Class probability bar chart
+- Dropdowns and sliders for interactive inputs
+- 🎛️ Presets included:
+  - 🏧 High-Value Cash Out (Suspicious)
+  - 📥 Typical Payment (Legitimate)
+
+---
+
+## 💻 8. How to Run Locally
+
+1. Clone the repository  
+   `git clone https://github.com/grimm-ak/fraud_detection_project.git`
+
+2. Install dependencies  
+   `pip install -r requirements.txt`
+
+3. Run the Streamlit app  
+   `streamlit run app.py`
+
+4. Visit `http://localhost:8501` in your browser.
+
+> 💡 Use the built-in presets for fast testing!
+
+---
+
+## 🧠 9. Model Confidence Logic
+
+| Confidence Score | Interpretation        |
+|------------------|-----------------------|
+| < 60%            | 🔴 Low Confidence     |
+| 60–90%           | 🟡 Medium Confidence  |
+| > 90%            | 🟢 High Confidence    |
+
+The app uses this logic to provide **warnings** or **assurance** about the prediction quality.
+
+---
+
+
+## 🔍 10. SHAP Sample Output
+
+Here’s what the SHAP Waterfall Plot explains for each transaction:
+
+This plot breaks down the model’s fraud prediction for a specific transaction. Each bar represents how much a feature pushed the prediction towards **fraud** (red) or **non-fraud** (blue). The base value (model’s average prediction) is adjusted feature-by-feature to reach the final fraud probability.
+
+![SHAP Waterfall Plot](shap-waterfall.png)
+
+
+
+
+
+## 📸 11. Screenshot
+
+![App Screenshot](screenshots/app_preview.png)
+
+*Note: Replace with your actual screenshot path.*
+
+## 🚀 12. Future Work
+
+- Add Docker support
+- Add database logging of suspicious predictions
+- Incorporate user authentication for app usage
+- Deploy on GCP/AWS for enterprise integration
+
+
+## 📂 13. Folder Structure
+
+fraud_detection_project/  #  main project repository folder
+├── .github/              # GitHub-specific configurations ( Workflows for automated pings)
+│   └── workflows/
+│       └── ping.yml      # GitHub Actions workflow to keep app awake
+├── .streamlit/           # Streamlit configuration for deployment
+│   └── config.toml       # Streamlit app configuration (e.g., file watcher settings)
+├── app.py                # The main Streamlit web application script for prediction
+├── best_lgbm_clf_model.joblib # Trained LightGBM model (saved for deployment)
+├── scaler.joblib         # Fitted StandardScaler (saved for deployment)
+├── requirements.txt      # Python dependencies for the Streamlit app
+├── Fraud_Detection_Notebook.ipynb # Your detailed Jupyter/Colab notebook with all code (EDA, training, SHAP)
+├── README.md             # This project's main documentation file
+└── screenshots/          # Folder for project screenshots to embed in README.md
+    └── app_preview.png   # Screenshot of the deployed Streamlit app
+
+## 📄 14. License
+
+This project is open-source and available under the **MIT License**.
+
+---
+
+## 🙌 Acknowledgements
+
+- [Kaggle Fraud Dataset](https://www.kaggle.com/datasets/amanalisiddiqui/fraud-detection-dataset)
+- [SHAP (SHapley Additive exPlanations)](https://github.com/slundberg/shap)
+- [Streamlit.io](https://streamlit.io)
+
+## 🔗 Live Demo
+
+🌐 [Live App on Streamlit Cloud](https://frauddetectionproject-o2sgpzkvmz8ac6edt54h8a.streamlit.app/)
+
+---
+
+## 💬 Questions?
+
+Feel free to open an issue or drop a comment in the repo. Happy to help!
