@@ -159,9 +159,9 @@ This plot breaks down the model’s fraud prediction for a specific transaction.
 
 ## 11. Screenshot
 
-![App Screenshot](images/app_preview.png)
+![App Screenshot](images/screenshot.png)
 
-*Note: Replace with your actual screenshot path.*
+
 
 ## 12. Future Work
 
@@ -186,7 +186,7 @@ fraud_detection_project/
 ├── scaler.joblib                  # Fitted StandardScaler for preprocessing new inputs
 ├── requirements.txt               # Python dependencies required for the Streamlit app
 ├── NoteBook/                      # Folder for Jupyter Notebooks and detailed analysis
-│   └── Fraud_Detection_Notebook.ipynb # Your detailed Jupyter/Colab notebook with all code (EDA, training, SHAP)
+│   └── Fraud_Detection_Notebook.ipynb # Your detailed Jupyter/Colab notebook with all code 
 ├── README.md                      # Project documentation and overview (this file)
 └── images/                        # Folder to store images/screenshots used in README.md
     ├── screenshot.png             # Screenshot of the deployed Streamlit app
