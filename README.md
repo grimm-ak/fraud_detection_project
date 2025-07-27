@@ -191,7 +191,7 @@ fraud_detection_project/
 └── images/                        # Folder to store images/screenshots used in README.md
     ├── screenshot.png             # Screenshot of the deployed Streamlit app
     └── shap-waterfall.png         # Screenshot of the SHAP Waterfall plot
-
+```
 ## 14. License
 
 This project is open-source and available under the **MIT License**.
