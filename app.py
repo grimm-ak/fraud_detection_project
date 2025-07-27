@@ -1,53 +1,73 @@
 import streamlit as st
-import numpy as np
 import pandas as pd
-import joblib
 import shap
+import joblib
+import numpy as np
+import matplotlib.pyplot as plt
 
-# Load the trained LightGBM model and scaler
+# Load model and scaler
 model = joblib.load("best_lgbm_clf_model.joblib")
 scaler = joblib.load("scaler.joblib")
 
-# Define all feature names expected by the model (replace with your actual list)
+# Define the correct feature names used during training (same order)
 feature_names = [
-    'feature1', 'feature2', 'feature3', 'feature4', 'feature5',
-    # Add all your actual feature columns used during training here
+    'step', 'amount', 'oldbalanceOrg', 'newbalanceOrig',
+    'oldbalanceDest', 'newbalanceDest',
+    'balanceDiffOrg', 'balanceDiffDest'
 ]
 
-# Streamlit app layout
-st.set_page_config(page_title="Fraud Detection App", layout="centered")
-st.title("🔍 Fraud Detection App")
-st.markdown("Provide the transaction details below to predict fraud.")
+# Streamlit UI
+st.set_page_config(page_title="Fraud Detection App", layout="wide")
+st.title("💳 Fraud Detection System")
+st.markdown("Enter transaction details below:")
 
-# UI inputs
-input_data = {}
-for feature in feature_names:
-    input_data[feature] = st.number_input(f"Enter value for {feature}", value=0.0)
+# User input form
+with st.form("input_form"):
+    step = st.number_input("Step", min_value=1)
+    amount = st.number_input("Transaction Amount")
+    oldbalanceOrg = st.number_input("Old Balance (Origin)")
+    newbalanceOrig = st.number_input("New Balance (Origin)")
+    oldbalanceDest = st.number_input("Old Balance (Destination)")
+    newbalanceDest = st.number_input("New Balance (Destination)")
 
-# Predict button
-if st.button("Predict Fraud"):
-    input_df = pd.DataFrame([input_data])
-    
-    # Preprocess input
+    submitted = st.form_submit_button("Detect Fraud")
+
+if submitted:
+    # Derived features
+    balanceDiffOrg = newbalanceOrig - oldbalanceOrg
+    balanceDiffDest = newbalanceDest - oldbalanceDest
+
+    # Prepare input with correct column names
+    input_data = {
+        'step': step,
+        'amount': amount,
+        'oldbalanceOrg': oldbalanceOrg,
+        'newbalanceOrig': newbalanceOrig,
+        'oldbalanceDest': oldbalanceDest,
+        'newbalanceDest': newbalanceDest,
+        'balanceDiffOrg': balanceDiffOrg,
+        'balanceDiffDest': balanceDiffDest
+    }
+
+    input_df = pd.DataFrame([input_data], columns=feature_names)
+
+    # Scale
     input_scaled = scaler.transform(input_df)
-    
-    # Prediction
+
+    # Predict
     prediction = model.predict(input_scaled)[0]
-    prediction_proba = model.predict_proba(input_scaled)[0][1]
+    prob = model.predict_proba(input_scaled)[0][1]
 
-    # Display result
-    st.markdown(f"### 🧾 Prediction: {'🚨 Fraudulent' if prediction == 1 else '✅ Not Fraudulent'}")
-    st.markdown(f"**Probability of Fraud:** `{prediction_proba:.2f}`")
+    # Output
+    if prediction == 1:
+        st.error(f"⚠️ Likely Fraudulent Transaction! (Probability: {prob:.2f})")
+    else:
+        st.success(f"✅ Legitimate Transaction. (Probability of Fraud: {prob:.2f})")
 
-    # SHAP explanation
-    explainer = shap.TreeExplainer(model)
-    shap_values = explainer.shap_values(input_scaled)
-
+    # SHAP Explanation
     st.markdown("#### 🔎 SHAP Explanation")
-    fig = shap.plots._waterfall.waterfall_legacy(
-        explainer.expected_value[1],
-        shap_values[1][0],
-        feature_names=feature_names,
-        features=input_scaled[0]
-    )
-    st.pyplot(bbox_inches="tight")
+    explainer = shap.Explainer(model)
+    shap_values = explainer(input_scaled)
+
+    # Plot SHAP
+    shap.plots.waterfall(shap_values[0], max_display=10)
